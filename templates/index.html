@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Devis BTP - NFS Bâtiment</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSS personnalisé -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <img src="/static/img/logo-nfs.png" alt="NFS Bâtiment" class="company-logo me-3">
+                    <div>
+                        <h1 class="header-title">NFS BÂTIMENT</h1>
+                        <p class="header-subtitle">Générateur de Devis Professionnel</p>
+                    </div>
+                </div>
+                <div>
+                    <a href="/historique" class="btn btn-outline-primary">
+                        <i class="fas fa-history me-2"></i>
+                        Historique des Devis
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Formulaire Principal -->
+            <div class="col-lg-8">
+                <div class="card fade-in-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
+                            Nouveau Devis BTP
+                            </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="devisForm">
+                            <!-- Informations Client -->
+                            <div class="mb-4">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>
+                                    Informations Client
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Prénom *</label>
+                                        <input type="text" class="form-control" id="prenom" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Nom *</label>
+                                        <input type="text" class="form-control" id="nom" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Adresse complète *</label>
+                                    <textarea class="form-control" id="adresse" rows="2" required></textarea>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Téléphone</label>
+                                        <input type="tel" class="form-control" id="telephone">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="email">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Prestations -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-primary mb-0">
+                                        <i class="fas fa-cogs me-2"></i>
+                                        Prestations BTP
+                                    </h6>
+                                    <button type="button" class="btn btn-outline-primary btn-sm"
+                                        onclick="addPrestation()">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Ajouter une prestation
+                                    </button>
+                                </div>
+                                <div id="prestations-container">
+                                    <!-- Les prestations seront ajoutées ici -->
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résumé et Totaux -->
+            <!-- Section Résumé -->
+            <div class="col-lg-4">
+                <div class="summary-section">
+                    <h3 class="summary-title">
+                        <i class="fas fa-calculator me-2"></i>
+                        Résumé du Devis
+                    </h3>
+
+                    <div id="resume-prestations" class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Ajoutez des prestations pour voir le résumé
+                        </div>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Total HT:</span>
+                        <strong id="total-ht">0,00 €</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>TVA (20%):</span>
+                        <strong id="total-tva">0,00 €</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total TTC:</span>
+                        <strong id="total-ttc">0,00 €</strong>
+                    </div>
+
+                    <button type="button" class="btn btn-primary btn-lg btn-animated w-100 mt-4"
+                        onclick="generateDevis()" id="btn-generate">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Générer & Envoyer le Devis
+                    </button>
+
+                    <!-- Options d'envoi -->
+                    <div class="email-options-card">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="send-email" checked>
+                            <label class="form-check-label" for="send-email">
+                                <i class="fas fa-envelope me-2"></i>
+                                Envoyer par email au client
+                            </label>
+                        </div>
+
+                        <!-- Sélection du template email -->
+                        <div id="email-template-section" class="mt-3">
+                            <label class="form-label">
+                                <i class="fas fa-templates me-2"></i>
+                                Template email :
+                            </label>
+                            <select class="form-select mb-2" id="email-template">
+                                <option value="standard">📧 Envoi Standard</option>
+                                <option value="signature">✍️ Demande de Signature</option>
+                                <option value="relance">🔔 Relance Client</option>
+                                <option value="accepte">✅ Devis Accepté</option>
+                            </select>
+
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-animated"
+                                onclick="previewTemplate()">
+                                <i class="fas fa-eye me-1"></i>Aperçu
+                            </button>
+                        </div>
+
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Le PDF sera envoyé automatiquement avec le template sélectionné
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Modal Template Preview -->
+    <div class="modal fade" id="templateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header gradient-bg">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-envelope me-2"></i>
+                        Aperçu du Template Email
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="fas fa-tag me-1"></i>
+                            Objet :
+                        </label>
+                        <div class="preview-card" id="preview-subject">
+                            <!-- Subject will be filled by JS -->
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="fas fa-comment me-1"></i>
+                            Message :
+                        </label>
+                        <div class="preview-card message-preview" id="preview-body" style="white-space: pre-line;">
+                            <!-- Body will be filled by JS -->
+                        </div>
+                    </div>
+                    <div class="alert alert-info border-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Les valeurs entre {} seront automatiquement remplacées par les données du client et du
+                            devis.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        Fermer
+                    </button>
+                    <button type="button" class="btn btn-primary btn-animated" data-bs-dismiss="modal">
+                        <i class="fas fa-check me-1"></i>
+                        Utiliser ce Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configuration EmailJS temporairement désactivée
+        // (function () {
+        //     emailjs.init("YOUR_PUBLIC_KEY"); // À remplacer par ta clé publique EmailJS
+        // })();
+
+        console.log('EmailJS désactivé temporairement - PDF fonctionne normalement');
+
+        // Données des prestations disponibles
+        const prestationsTypes = {{ prestations | tojson }};
+        let prestationCounter = 0;
+
+        // Debug prestations
+        console.log('Prestations chargées:', prestationsTypes);
+        console.log('Nombre de prestations:', prestationsTypes ? prestationsTypes.length : 'undefined');
+
+        // Fonction pour organiser les prestations par catégorie
+        function getOptGroupsHTML() {
+            const categories = {
+                '🧱 MAÇONNERIE': ['maçonnerie', 'fondation', 'mur', 'chape', 'enduit', 'dalle', 'muret'],
+                '🔧 PLOMBERIE': ['plomberie', 'point d\'eau', 'wc', 'lavabo', 'douche', 'baignoire', 'lave'],
+                '⚡ ÉLECTRICITÉ': ['électricité', 'luminaire', 'prise', 'interrupteur', 'tableau', 'terre', 'éclairage'],
+                '🎨 PEINTURE': ['peinture', 'lasure', 'papier', 'préparation'],
+                '🏠 SOLS & CARRELAGE': ['carrelage', 'parquet', 'sol', 'ragréage', 'plinthes'],
+                '🏗️ ISOLATION & CLOISONS': ['isolation', 'cloisons', 'placo', 'faux plafond', 'doublage'],
+                '🚪 MENUISERIE': ['porte', 'fenêtre', 'volet', 'placard', 'escalier', 'garde-corps'],
+                '🏚️ COUVERTURE': ['couverture', 'charpente', 'gouttières', 'étanchéité', 'zinguerie'],
+                '🔥 CHAUFFAGE': ['radiateur', 'chaudière', 'poêle', 'climatisation', 'plancher chauffant'],
+                '🚜 TERRASSEMENT': ['terrassement', 'évacuation', 'remblai', 'raccordement', 'accès'],
+                '🔨 DIVERS': ['démolition', 'nettoyage', 'benne', 'échafaudage', 'main']
+            };
+
+            let html = '<option value="">Sélectionner...</option>';
+            const usedPrestations = new Set(); // Pour éviter les doublons
+
+            for (const [categoryName, keywords] of Object.entries(categories)) {
+                const categoryItems = [];
+
+                // Filtrer les prestations pour cette catégorie sans doublons
+                prestationsTypes.forEach(p => {
+                    const prestationId = p[0]; // ID unique
+                    const nom = p[1].toString().toLowerCase();
+
+                    // Si pas déjà utilisée et correspond à un mot-clé
+                    if (!usedPrestations.has(prestationId) &&
+                        keywords.some(keyword => nom.includes(keyword))) {
+                        categoryItems.push(p);
+                        usedPrestations.add(prestationId); // Marquer comme utilisée
+                    }
+                });
+
+                // Ajouter la catégorie si elle contient des éléments
+                if (categoryItems.length > 0) {
+                    html += `<optgroup label="${categoryName}">`;
+                    categoryItems.forEach(p => {
+                        html += `<option value="${p[0]}" data-prix="${p[3]}" data-unite="${p[2]}">${p[1]} - ${p[3]} €/${p[2]}</option>`;
+                    });
+                    html += '</optgroup>';
+                }
+            }
+
+            // Ajouter les prestations non classées dans "AUTRES"
+            const otherItems = prestationsTypes.filter(p => !usedPrestations.has(p[0]));
+            if (otherItems.length > 0) {
+                html += `<optgroup label="📦 AUTRES">`;
+                otherItems.forEach(p => {
+                    html += `<option value="${p[0]}" data-prix="${p[3]}" data-unite="${p[2]}">${p[1]} - ${p[3]} €/${p[2]}</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            return html;
+        }
+
+        function addPrestation() {
+            const container = document.getElementById('prestations-container');
+            const prestationId = ++prestationCounter;
+
+            const prestationHtml = `
+                <div class="prestation-row" id="prestation-${prestationId}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0 text-primary">Prestation #${prestationId}</h6>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removePrestation(${prestationId})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Type de prestation</label>
+                            <select class="form-select" onchange="updatePrestationPrice(${prestationId})" id="type-${prestationId}">
+                                ${getOptGroupsHTML()}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Quantité</label>
+                            <input type="number" class="form-control" id="quantite-${prestationId}" value="1" min="0.1" step="0.1" onchange="calculatePrestation(${prestationId})">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Prix unitaire</label>
+                            <input type="number" class="form-control" id="prix-${prestationId}" step="0.01" onchange="calculatePrestation(${prestationId})">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-9">
+                            <label class="form-label">Description personnalisée</label>
+                            <input type="text" class="form-control" id="description-${prestationId}" placeholder="Description détaillée...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Total</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control fw-bold" id="total-${prestationId}" readonly>
+                                <span class="input-group-text">€</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', prestationHtml);
+        }
+
+        function removePrestation(id) {
+            document.getElementById(`prestation-${id}`).remove();
+            calculateTotals();
+        }
+
+        function updatePrestationPrice(id) {
+            const select = document.getElementById(`type-${id}`);
+            const prixInput = document.getElementById(`prix-${id}`);
+            const descInput = document.getElementById(`description-${id}`);
+
+            if (select.value) {
+                const option = select.selectedOptions[0];
+                prixInput.value = option.dataset.prix;
+                if (!descInput.value) {
+                    descInput.value = option.text;
+                }
+                calculatePrestation(id);
+            }
+        }
+
+        function calculatePrestation(id) {
+            const quantite = parseFloat(document.getElementById(`quantite-${id}`).value) || 0;
+            const prix = parseFloat(document.getElementById(`prix-${id}`).value) || 0;
+            const total = quantite * prix;
+
+            document.getElementById(`total-${id}`).value = total.toFixed(2);
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let totalHT = 0;
+
+            document.querySelectorAll('[id^="total-"]').forEach(input => {
+                if (input.id.startsWith('total-') && input.id !== 'total-ht' && input.id !== 'total-tva' && input.id !== 'total-ttc') {
+                    totalHT += parseFloat(input.value) || 0;
+                }
+            });
+
+            const tva = totalHT * 0.20;
+            const totalTTC = totalHT + tva;
+
+            document.getElementById('total-ht').textContent = totalHT.toFixed(2) + ' €';
+            document.getElementById('total-tva').textContent = tva.toFixed(2) + ' €';
+            document.getElementById('total-ttc').textContent = totalTTC.toFixed(2) + ' €';
+
+            updateResume();
+        }
+
+        function updateResume() {
+            const resumeContainer = document.getElementById('resume-prestations');
+            const prestations = [];
+
+            document.querySelectorAll('[id^="prestation-"]').forEach(div => {
+                const id = div.id.split('-')[1];
+                const description = document.getElementById(`description-${id}`)?.value;
+                const total = document.getElementById(`total-${id}`)?.value;
+
+                if (description && total && parseFloat(total) > 0) {
+                    prestations.push({
+                        description: description.substring(0, 30) + (description.length > 30 ? '...' : ''),
+                        total: parseFloat(total)
+                    });
+                }
+            });
+
+            if (prestations.length === 0) {
+                resumeContainer.innerHTML = '<p class="text-muted text-center"><i class="fas fa-info-circle me-1"></i>Ajoutez des prestations pour voir le résumé</p>';
+            } else {
+                const resumeHtml = prestations.map(p =>
+                    `<div class="d-flex justify-content-between small mb-1">
+                        <span>${p.description}</span>
+                        <strong>${p.total.toFixed(2)} €</strong>
+                    </div>`
+                ).join('');
+                resumeContainer.innerHTML = resumeHtml;
+            }
+        }
+
+        function loadDemo() {
+            // Nettoyer le formulaire
+            document.getElementById('devisForm').reset();
+            document.getElementById('prestations-container').innerHTML = '';
+            prestationCounter = 0;
+
+            // Remplir avec des données de démonstration
+            document.getElementById('prenom').value = 'Jean';
+            document.getElementById('nom').value = 'Martin';
+            document.getElementById('adresse').value = '123 Rue des Fleurs\n75001 Paris';
+            document.getElementById('telephone').value = '01 23 45 67 89';
+            document.getElementById('email').value = 'jean.martin@email.com';
+
+            // Ajouter quelques prestations d'exemple
+            addPrestation();
+            document.getElementById('type-1').selectedIndex = 1; // Maçonnerie
+            updatePrestationPrice(1);
+            document.getElementById('quantite-1').value = '25';
+            calculatePrestation(1);
+
+            addPrestation();
+            document.getElementById('type-2').selectedIndex = 2; // Plomberie
+            updatePrestationPrice(2);
+            document.getElementById('quantite-2').value = '1';
+            calculatePrestation(2);
+
+            addPrestation();
+            document.getElementById('type-3').selectedIndex = 4; // Peinture
+            updatePrestationPrice(3);
+            document.getElementById('quantite-3').value = '50';
+            calculatePrestation(3);
+        }
+
+        // Variables globales pour les templates
+        let emailTemplates = {};
+
+        // Charger les templates email
+        async function loadEmailTemplates() {
+            try {
+                const response = await fetch('/api/email-templates');
+                emailTemplates = await response.json();
+            } catch (error) {
+                console.error('Erreur chargement templates:', error);
+            }
+        }
+
+        // Prévisualiser un template
+        async function previewTemplate() {
+            const templateId = document.getElementById('email-template').value;
+            const template = emailTemplates[templateId];
+
+            if (!template) {
+                await loadEmailTemplates();
+                return previewTemplate();
+            }
+
+            // Données d'exemple
+            const sampleData = {
+                prenom: document.getElementById('prenom').value || 'Jean',
+                nom: document.getElementById('nom').value || 'Martin',
+                numero: 'DEV-2025-001',
+                montant: '2 450.00',
+                date: new Date().toLocaleDateString('fr-FR'),
+                date_signature: new Date().toLocaleDateString('fr-FR'),
+                lien_signature: `${window.location.origin}/signature/1`
+            };
+
+            // Remplacer les variables dans le template
+            let subject = template.subject;
+            let body = template.body;
+
+            for (const [key, value] of Object.entries(sampleData)) {
+                const regex = new RegExp(`{${key}}`, 'g');
+                subject = subject.replace(regex, value);
+                body = body.replace(regex, value);
+            }
+
+            // Afficher dans le modal
+            document.getElementById('preview-subject').textContent = subject;
+            document.getElementById('preview-body').textContent = body;
+
+            // Ouvrir le modal
+            new bootstrap.Modal(document.getElementById('templateModal')).show();
+        }
+
+        // Obtenir le template formaté
+        function getFormattedTemplate(templateId, clientData, devisData) {
+            const template = emailTemplates[templateId];
+            if (!template) return null;
+
+            const data = {
+                prenom: clientData.prenom,
+                nom: clientData.nom,
+                numero: devisData.numero,
+                montant: devisData.total_ttc.toFixed(2),
+                date: new Date().toLocaleDateString('fr-FR'),
+                date_signature: new Date().toLocaleDateString('fr-FR'),
+                lien_signature: `${window.location.origin}/signature/${devisData.id}`
+            };
+
+            let subject = template.subject;
+            let body = template.body;
+
+            for (const [key, value] of Object.entries(data)) {
+                const regex = new RegExp(`{${key}}`, 'g');
+                subject = subject.replace(regex, value);
+                body = body.replace(regex, value);
+            }
+
+            return { subject, body };
+        }
+
+        // Fonction d'envoi d'email avec EmailJS
+        async function sendEmailWithPDF(clientData, pdfUrl, devisData) {
+            try {
+                // Obtenir le template sélectionné
+                const templateId = document.getElementById('email-template').value;
+                const templateFormatted = getFormattedTemplate(templateId, clientData, devisData);
+
+                if (!templateFormatted) {
+                    throw new Error('Template non trouvé');
+                }
+
+                const emailParams = {
+                    to_email: clientData.email,
+                    to_name: `${clientData.prenom} ${clientData.nom}`,
+                    client_name: `${clientData.prenom} ${clientData.nom}`,
+                    devis_numero: devisData.numero,
+                    pdf_link: window.location.origin + pdfUrl,
+                    company_name: "NFS BÂTIMENT",
+                    subject: templateFormatted.subject,
+                    message: templateFormatted.body,
+                    template_name: emailTemplates[templateId].name
+                };
+
+                // Envoyer l'email via EmailJS
+                const response = await emailjs.send(
+                    'YOUR_SERVICE_ID',      // Service ID à configurer
+                    'YOUR_TEMPLATE_ID',     // Template ID à configurer
+                    emailParams
+                );
+
+                return response;
+            } catch (error) {
+                console.error('Erreur envoi email:', error);
+                throw error;
+            }
+        }
+
+        async function generateDevis() {
+            const btnGenerate = document.getElementById('btn-generate');
+            btnGenerate.disabled = true;
+            btnGenerate.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Génération en cours...';
+
+            try {
+                // Collecter les données du formulaire
+                const clientData = {
+                    prenom: document.getElementById('prenom').value,
+                    nom: document.getElementById('nom').value,
+                    adresse: document.getElementById('adresse').value,
+                    telephone: document.getElementById('telephone').value,
+                    email: document.getElementById('email').value
+                };
+
+                // Debug pour voir les données collectées
+                console.log('Données client collectées:', clientData);
+
+                const prestationsData = [];
+                document.querySelectorAll('[id^="prestation-"]').forEach(div => {
+                    const id = div.id.split('-')[1];
+                    const description = document.getElementById(`description-${id}`)?.value;
+                    const quantite = parseFloat(document.getElementById(`quantite-${id}`)?.value);
+                    const prix = parseFloat(document.getElementById(`prix-${id}`)?.value);
+                    const total = parseFloat(document.getElementById(`total-${id}`)?.value);
+
+                    // Vérification plus précise : description non vide, quantité et prix > 0
+                    if (description && description.trim() !== '' && quantite > 0 && prix > 0) {
+                        prestationsData.push({
+                            description: description.trim(),
+                            quantite,
+                            prix_unitaire: prix,
+                            total
+                        });
+                    }
+                });
+
+                console.log('Prestations collectées:', prestationsData); // Debug
+
+                // Validation email si envoi activé
+                const sendEmail = document.getElementById('send-email').checked;
+                if (sendEmail && !clientData.email) {
+                    alert('⚠️ Veuillez renseigner l\'email du client pour l\'envoi automatique.');
+                    return;
+                }
+
+                // Validation
+                if (!clientData.nom || !clientData.prenom || !clientData.adresse) {
+                    alert('Veuillez remplir les informations client obligatoires.');
+                    return;
+                }
+
+                if (prestationsData.length === 0) {
+                    alert('Veuillez ajouter au moins une prestation.');
+                    return;
+                }
+
+                // Envoyer à l'API
+                const response = await fetch('/api/generate-devis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client: clientData,
+                        prestations: prestationsData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Télécharger le PDF
+                    window.open(result.pdf_url, '_blank');
+
+                    let successMessage = '✅ Devis généré avec succès !';
+
+                    // Envoyer par email si activé
+                    if (sendEmail && clientData.email) {
+                        try {
+                            btnGenerate.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Envoi par email...';
+
+                            const devisNumero = `DEV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${result.devis_id.toString().padStart(3, '0')}`;
+
+                            // Créer les données du devis pour le template
+                            const devisData = {
+                                id: result.devis_id,
+                                numero: devisNumero,
+                                total_ttc: prestationsData.reduce((total, p) => total + (p.quantite * p.prix_unitaire * 1.2), 0)
+                            };
+
+                            // EmailJS temporairement désactivé (configuration requise)
+                            // await sendEmailWithPDF(clientData, result.pdf_url, devisData);
+
+                            successMessage += '\n📧 Email désactivé temporairement (configuration EmailJS requise)';
+
+                        } catch (emailError) {
+                            console.error('Erreur email:', emailError);
+                            successMessage += '\n⚠️ Erreur lors de l\'envoi de l\'email, mais le PDF est généré.';
+                        }
+                    }
+
+                    // Message de succès final
+                    alert(successMessage);
+
+                } else {
+                    alert('❌ Erreur lors de la génération: ' + result.error);
+                }
+
+            } catch (error) {
+                alert('❌ Erreur réseau: ' + error.message);
+                console.error('Erreur:', error);
+            } finally {
+                btnGenerate.disabled = false;
+                btnGenerate.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Générer & Envoyer le Devis';
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function () {
+            // Charger les templates email
+            loadEmailTemplates();
+
+            // Gérer l'affichage de la section template
+            const sendEmailCheckbox = document.getElementById('send-email');
+            const templateSection = document.getElementById('email-template-section');
+
+            sendEmailCheckbox.addEventListener('change', function () {
+                templateSection.style.display = this.checked ? 'block' : 'none';
+            });
+
+            // Ajouter une prestation par défaut
+            addPrestation();
+        });
+    </script>
+</body>
+
+</html>
