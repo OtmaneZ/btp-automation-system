@@ -331,18 +331,18 @@ def admin_planning():
     """Planning des chantiers"""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    
+
     # Récupérer tous les chantiers
     cursor.execute('''
-        SELECT id, nom_chantier, client_nom, adresse, date_debut, date_fin, 
+        SELECT id, nom_chantier, client_nom, adresse, date_debut, date_fin,
                statut, priorite, montant_prevu, couleur, description
-        FROM chantiers 
+        FROM chantiers
         ORDER BY date_debut ASC
     ''')
     chantiers = cursor.fetchall()
-    
+
     conn.close()
-    
+
     return render_template('admin/planning.html', chantiers=chantiers)
 
 @app.route('/api/chantiers', methods=['GET'])
@@ -351,15 +351,15 @@ def get_chantiers():
     """API pour récupérer les chantiers (format FullCalendar)"""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    
+
     cursor.execute('''
-        SELECT id, nom_chantier, client_nom, date_debut, date_fin, 
+        SELECT id, nom_chantier, client_nom, date_debut, date_fin,
                statut, couleur, montant_prevu, description
         FROM chantiers
     ''')
     chantiers = cursor.fetchall()
     conn.close()
-    
+
     # Convertir en format FullCalendar
     events = []
     for chantier in chantiers:
@@ -376,7 +376,7 @@ def get_chantiers():
                 'description': chantier[8]
             }
         })
-    
+
     return jsonify(events)
 
 @app.route('/api/chantiers', methods=['POST'])
@@ -387,10 +387,10 @@ def create_chantier():
         data = request.json
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
-        
+
         cursor.execute('''
-            INSERT INTO chantiers (nom_chantier, client_nom, client_telephone, 
-                                 adresse, description, date_debut, date_fin, 
+            INSERT INTO chantiers (nom_chantier, client_nom, client_telephone,
+                                 adresse, description, date_debut, date_fin,
                                  statut, priorite, montant_prevu, couleur)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
@@ -406,13 +406,13 @@ def create_chantier():
             data.get('montant_prevu', 0),
             data.get('couleur', '#667eea')
         ))
-        
+
         chantier_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        
+
         return jsonify({'success': True, 'id': chantier_id})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -424,10 +424,10 @@ def update_chantier(chantier_id):
         data = request.json
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
-        
+
         cursor.execute('''
-            UPDATE chantiers 
-            SET nom_chantier=?, client_nom=?, adresse=?, date_debut=?, 
+            UPDATE chantiers
+            SET nom_chantier=?, client_nom=?, adresse=?, date_debut=?,
                 date_fin=?, statut=?, couleur=?, montant_prevu=?, description=?
             WHERE id=?
         ''', (
@@ -442,12 +442,12 @@ def update_chantier(chantier_id):
             data.get('description', ''),
             chantier_id
         ))
-        
+
         conn.commit()
         conn.close()
-        
+
         return jsonify({'success': True})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,17 +33,20 @@
                         <i class="fas fa-inbox"></i> Demandes
                     </a>
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
                             <i class="fas fa-user-shield me-2"></i>Admin
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="/" target="_blank">
-                                <i class="fas fa-external-link-alt me-2"></i>Voir le site
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
+                                    <i class="fas fa-external-link-alt me-2"></i>Voir le site
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item text-danger" href="/admin/logout">
-                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-                            </a></li>
+                                    <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                                </a></li>
                         </ul>
                     </div>
                 </div>
@@ -110,14 +114,18 @@
                                 <i class="fas fa-plus me-2"></i>Nouveau Chantier
                             </button>
                             <div class="dropdown">
-                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                    data-bs-toggle="dropdown">
                                     <i class="fas fa-filter me-2"></i>Filtrer
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" onclick="filterByStatus('tous')">Tous</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('planifie')">Planifiés</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('en_cours')">En cours</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('termine')">Terminés</a></li>
+                                    <li><a class="dropdown-item" href="#"
+                                            onclick="filterByStatus('planifie')">Planifiés</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('en_cours')">En
+                                            cours</a></li>
+                                    <li><a class="dropdown-item" href="#"
+                                            onclick="filterByStatus('termine')">Terminés</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -222,7 +230,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Couleur</label>
-                                <input type="color" class="form-control form-control-color" id="couleur" value="#667eea">
+                                <input type="color" class="form-control form-control-color" id="couleur"
+                                    value="#667eea">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Description</label>
@@ -243,12 +252,12 @@
 
     <style>
         .stat-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 20px;
             text-align: center;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             gap: 15px;
@@ -278,11 +287,11 @@
         }
 
         .legend-card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 10px;
             padding: 15px;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .legend-items {
@@ -325,19 +334,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/fr.js'></script>
-    
+
     <script>
         let calendar;
         let currentChantier = null;
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initializeCalendar();
             loadStats();
         });
 
         function initializeCalendar() {
             const calendarEl = document.getElementById('calendar');
-            
+
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'fr',
@@ -352,20 +361,20 @@
                 selectMirror: true,
                 dayMaxEvents: true,
                 weekends: true,
-                
+
                 events: '/api/chantiers',
-                
-                eventClick: function(info) {
+
+                eventClick: function (info) {
                     // Afficher les détails du chantier
                     showChantierDetails(info.event);
                 },
-                
-                select: function(info) {
+
+                select: function (info) {
                     // Créer un nouveau chantier à cette date
                     openAddChantierModal(info.start);
                 },
 
-                eventDrop: function(info) {
+                eventDrop: function (info) {
                     // Mettre à jour les dates quand on déplace un événement
                     updateChantierDates(info.event);
                 }
@@ -379,15 +388,15 @@
                 .then(response => response.json())
                 .then(data => {
                     const today = new Date().toISOString().split('T')[0];
-                    
+
                     document.getElementById('totalChantiers').textContent = data.length;
-                    
+
                     const enCours = data.filter(c => c.extendedProps.statut === 'en_cours').length;
                     document.getElementById('chantiersEnCours').textContent = enCours;
-                    
+
                     const aujourdhui = data.filter(c => c.start <= today && (c.end || c.start) >= today).length;
                     document.getElementById('chantiersAujourdhui').textContent = aujourdhui;
-                    
+
                     const montantTotal = data.reduce((sum, c) => sum + (c.extendedProps.montant || 0), 0);
                     document.getElementById('montantTotal').textContent = montantTotal.toLocaleString() + '€';
                 });
@@ -397,11 +406,11 @@
             currentChantier = null;
             document.getElementById('modalTitle').textContent = 'Nouveau Chantier';
             document.getElementById('chantierForm').reset();
-            
+
             if (date) {
                 document.getElementById('dateDebut').value = date.toISOString().split('T')[0];
             }
-            
+
             new bootstrap.Modal(document.getElementById('chantierModal')).show();
         }
 
@@ -409,7 +418,7 @@
             // Afficher modal avec détails + possibilité de modifier
             currentChantier = event;
             document.getElementById('modalTitle').textContent = 'Modifier Chantier';
-            
+
             // Remplir le formulaire avec les données existantes
             document.getElementById('nomChantier').value = event.title.split(' - ')[0];
             document.getElementById('clientNom').value = event.title.split(' - ')[1];
@@ -421,7 +430,7 @@
             document.getElementById('description').value = event.extendedProps.description || '';
             document.getElementById('montantPrevu').value = event.extendedProps.montant || '';
             document.getElementById('statut').value = event.extendedProps.statut || 'planifie';
-            
+
             new bootstrap.Modal(document.getElementById('chantierModal')).show();
         }
 
@@ -443,7 +452,7 @@
             try {
                 let url = '/api/chantiers';
                 let method = 'POST';
-                
+
                 if (currentChantier) {
                     url += '/' + currentChantier.id;
                     method = 'PUT';
@@ -458,7 +467,7 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     bootstrap.Modal.getInstance(document.getElementById('chantierModal')).hide();
                     calendar.refetchEvents();
@@ -475,7 +484,7 @@
         function filterByStatus(status) {
             // Filtrer les événements par statut
             const events = calendar.getEvents();
-            
+
             if (status === 'tous') {
                 events.forEach(event => event.setProp('display', 'auto'));
             } else {
@@ -506,18 +515,19 @@
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
-            .then(result => {
-                if (!result.success) {
-                    alert('Erreur lors de la mise à jour');
-                    calendar.refetchEvents(); // Recharger en cas d'erreur
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                calendar.refetchEvents();
-            });
+                .then(response => response.json())
+                .then(result => {
+                    if (!result.success) {
+                        alert('Erreur lors de la mise à jour');
+                        calendar.refetchEvents(); // Recharger en cas d'erreur
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    calendar.refetchEvents();
+                });
         }
     </script>
 </body>
+
 </html>
