@@ -239,7 +239,7 @@ def admin_login_post():
     """Traitement de la connexion admin"""
     email = request.form.get('email')
     password = request.form.get('password')
-    
+
     if email == ADMIN_CREDENTIALS['email'] and hashlib.sha256(password.encode()).hexdigest() == ADMIN_CREDENTIALS['password']:
         session['admin_logged_in'] = True
         flash('Connexion réussie !', 'success')
