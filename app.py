@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, flash
 import sqlite3
 from datetime import datetime, timedelta
 import os
@@ -14,10 +14,11 @@ import qrcode
 import io
 import base64
 from PIL import Image
+from functools import wraps
+import hashlib
 
 app = Flask(__name__)
-
-app = Flask(__name__)
+app.secret_key = 'nfs-batiment-secret-key-2025'  # Clé pour les sessions
 
 # Configuration
 DATABASE = 'devis.db'
@@ -39,6 +40,21 @@ COMPANY_INFO = {
         'bic': 'AGRIFRPP891'
     }
 }
+
+# Identifiants admin (en production, mettre dans des variables d'environnement)
+ADMIN_CREDENTIALS = {
+    'email': 'admin@nfs-batiment.fr',
+    'password': hashlib.sha256('nfs2025'.encode()).hexdigest()  # Mot de passe: nfs2025
+}
+
+def login_required(f):
+    """Décorateur pour protéger les routes admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session:
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Nettoyer les PDFs temporaires au démarrage et à l'arrêt
 def cleanup_temp_pdfs():
@@ -210,7 +226,39 @@ init_db()
 
 @app.route('/')
 def index():
-    """Page d'accueil - formulaire de devis"""
+    """Page d'accueil - Site vitrine"""
+    return render_template('website/home.html', company_info=COMPANY_INFO)
+
+@app.route('/admin/login')
+def admin_login():
+    """Page de connexion admin"""
+    return render_template('admin/login.html')
+
+@app.route('/admin/login', methods=['POST'])
+def admin_login_post():
+    """Traitement de la connexion admin"""
+    email = request.form.get('email')
+    password = request.form.get('password')
+    
+    if email == ADMIN_CREDENTIALS['email'] and hashlib.sha256(password.encode()).hexdigest() == ADMIN_CREDENTIALS['password']:
+        session['admin_logged_in'] = True
+        flash('Connexion réussie !', 'success')
+        return redirect(url_for('admin_dashboard'))
+    else:
+        flash('Email ou mot de passe incorrect', 'error')
+        return redirect(url_for('admin_login'))
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Déconnexion admin"""
+    session.pop('admin_logged_in', None)
+    flash('Vous êtes déconnecté', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    """Dashboard admin - Générateur de devis"""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
@@ -220,9 +268,44 @@ def index():
 
     conn.close()
 
-    return render_template('index.html', prestations=prestations)
+    return render_template('admin/dashboard.html', prestations=prestations)
 
-@app.route('/historique')
+# ========================================
+# ROUTES SITE VITRINE (PUBLIC)
+# ========================================
+
+@app.route('/services')
+def services():
+    """Page services"""
+    return render_template('website/services.html', company_info=COMPANY_INFO)
+
+@app.route('/galerie')
+def galerie():
+    """Page galerie projets"""
+    return render_template('website/galerie.html', company_info=COMPANY_INFO)
+
+@app.route('/contact')
+def contact():
+    """Page contact"""
+    return render_template('website/contact.html', company_info=COMPANY_INFO)
+
+@app.route('/api/contact', methods=['POST'])
+def contact_form():
+    """Traitement formulaire de contact"""
+    try:
+        data = request.json
+        # Ici on pourrait envoyer un email ou sauvegarder en base
+        # Pour le moment, on retourne juste un succès
+        return jsonify({'success': True, 'message': 'Message envoyé avec succès!'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ========================================
+# ROUTES ADMIN (PROTÉGÉES)
+# ========================================
+
+@app.route('/admin/historique')
+@login_required
 def historique():
     """Page d'historique des devis"""
     conn = sqlite3.connect(DATABASE)
@@ -264,6 +347,7 @@ def change_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/generate-devis', methods=['POST'])
+@login_required
 def generate_devis():
     """Génère un devis PDF"""
     data = request.json
@@ -860,7 +944,8 @@ L'équipe NFS
 # SYSTÈME QR CODE POUR DEMANDES CLIENTS
 # ========================================
 
-@app.route('/qr-code')
+@app.route('/admin/qr-code')
+@login_required
 def generate_qr_code():
     """Génère un QR code pour les demandes clients"""
     # URL vers le formulaire client
@@ -937,7 +1022,8 @@ def submit_client_request():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/demandes-clients')
+@app.route('/admin/demandes')
+@login_required
 def client_requests():
     """Page de gestion des demandes clients"""
     conn = sqlite3.connect(DATABASE)
