@@ -1,15 +1,21 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+import tempfile
+import atexit
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
-import tempfile
-import atexit
 import glob
+import qrcode
+import io
+import base64
+from PIL import Image
+
+app = Flask(__name__)
 
 app = Flask(__name__)
 
@@ -26,7 +32,12 @@ COMPANY_INFO = {
     'rcs': '911 840 122 R.C.S. Nice',
     'tva': 'FR01911840122',
     'ape': '4334Z',
-    'capital': '1500 €'
+    'capital': '1500 €',
+    'bank': {
+        'name': 'CREDIT AGRICOLE',
+        'iban': 'FR7619106006674369601820127',
+        'bic': 'AGRIFRPP891'
+    }
 }
 
 # Nettoyer les PDFs temporaires au démarrage et à l'arrêt
@@ -107,6 +118,8 @@ def init_db():
             tva REAL NOT NULL,
             total_ttc REAL NOT NULL,
             statut TEXT DEFAULT 'brouillon',
+            payment_mode TEXT DEFAULT 'virement',
+            payment_deadline TEXT DEFAULT '30j',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (client_id) REFERENCES clients (id)
         )
@@ -136,6 +149,22 @@ def init_db():
             signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             client_ip TEXT,
             FOREIGN KEY (devis_id) REFERENCES devis (id)
+        )
+    ''')
+
+    # Table demandes clients via QR Code
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS demandes_clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom TEXT NOT NULL,
+            prenom TEXT NOT NULL,
+            telephone TEXT NOT NULL,
+            email TEXT,
+            adresse TEXT,
+            description TEXT NOT NULL,
+            photo_path TEXT,
+            statut TEXT DEFAULT 'nouvelle',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
@@ -236,6 +265,13 @@ def generate_devis():
     """Génère un devis PDF"""
     data = request.json
 
+    # Debug : afficher les données reçues
+    print("🔍 Données reçues:", data)
+    if 'payment' in data:
+        print("💳 Données paiement:", data['payment'])
+    else:
+        print("❌ Aucune donnée de paiement trouvée!")
+
     try:
         # Sauvegarder en base
         devis_id = save_devis_to_db(data)
@@ -248,6 +284,9 @@ def generate_devis():
         conn.close()
 
         # Générer le PDF avec le bon numéro
+        print(f"🚀 AVANT generate_pdf - data contient: {list(data.keys())}")
+        if 'payment' in data:
+            print(f"💳 AVANT generate_pdf - payment: {data['payment']}")
         pdf_path = generate_pdf(devis_id, data, devis_numero)
 
         return jsonify({
@@ -305,10 +344,14 @@ def save_devis_to_db(data):
         raise Exception("Impossible de générer un numéro de devis unique")
 
     # Insérer le devis
+    payment_data = data.get('payment', {})
+    payment_mode = payment_data.get('mode', 'virement')
+    payment_deadline = payment_data.get('deadline', '30j')
+
     cursor.execute('''
-        INSERT INTO devis (numero, client_id, total_ht, tva, total_ttc)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (numero, client_id, total_ht, tva, total_ttc))
+        INSERT INTO devis (numero, client_id, total_ht, tva, total_ttc, payment_mode, payment_deadline)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (numero, client_id, total_ht, tva, total_ttc, payment_mode, payment_deadline))
     devis_id = cursor.lastrowid
 
     # Insérer les lignes de prestation
@@ -339,6 +382,15 @@ def generate_pdf(devis_id, data, devis_numero=None):
     # Si pas de numéro fourni, le générer (fallback)
     if not devis_numero:
         devis_numero = f"DEV-{datetime.now().year}-{devis_id:04d}"
+
+    # Extraire les données de paiement
+    payment_data = data.get('payment', {})
+    payment_mode = payment_data.get('mode', 'virement')
+    payment_deadline = payment_data.get('deadline', '30j')
+
+    print(f"🔍 EXTRACTED payment_mode: {payment_mode}")
+    print(f"🔍 EXTRACTED payment_deadline: {payment_deadline}")
+    print(f"🔍 RAW payment_data: {payment_data}")
 
     # Créer le PDF
     c = canvas.Canvas(pdf_path, pagesize=A4)
@@ -505,10 +557,30 @@ def generate_pdf(devis_id, data, devis_numero=None):
 
     y_pos -= 20
     c.setFont("Helvetica", 9)
+
+    # Générer les conditions dynamiquement
+    payment_modes_fr = {
+        'virement': 'Virement bancaire',
+        'cheque': 'Chèque',
+        'especes': 'Espèces',
+        'cb': 'Carte bancaire'
+    }
+
+    payment_deadlines_fr = {
+        'reception': 'à réception',
+        '15j': '15 jours',
+        '30j': '30 jours',
+        '45j': '45 jours',
+        '60j': '60 jours'
+    }
+
+    mode_fr = payment_modes_fr.get(payment_mode, 'Virement bancaire')
+    deadline_fr = payment_deadlines_fr.get(payment_deadline, '30 jours')
+
     conditions = [
         "• Devis valable 30 jours à compter de la date d'émission",
-        "• Nos prestations sont payables comptant à réception",
-        "• Modalités de paiement : Virement - Chèque",
+        f"• Échéance de paiement : {deadline_fr}",
+        f"• Mode de règlement : {mode_fr}",
         "• Intérêt de retard égal à 3 fois le taux d'intérêt légal",
         "• Prix exprimés en euros TTC",
         "• Travaux conformes aux règles de l'art et normes en vigueur"
@@ -517,6 +589,24 @@ def generate_pdf(devis_id, data, devis_numero=None):
     for condition in conditions:
         c.drawString(50, y_pos, condition)
         y_pos -= 15
+
+    # Informations bancaires (seulement si virement)
+    if payment_mode == 'virement':
+        y_pos -= 20
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(50, y_pos, "COORDONNÉES BANCAIRES:")
+
+        y_pos -= 20
+        c.setFont("Helvetica", 9)
+        bank_info = [
+            f"Notre domiciliation bancaire : {COMPANY_INFO['bank']['name']}",
+            f"IBAN : {COMPANY_INFO['bank']['iban']}",
+            f"BIC : {COMPANY_INFO['bank']['bic']}"
+        ]
+
+        for info in bank_info:
+            c.drawString(50, y_pos, info)
+            y_pos -= 15
 
     # Signature avec nom d'entreprise correct
     y_pos -= 30
@@ -559,7 +649,9 @@ def download_pdf(devis_id):
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT d.*, c.nom, c.prenom, c.adresse, c.telephone, c.email
+        SELECT d.id, d.numero, d.client_id, d.total_ht, d.tva, d.total_ttc,
+               d.statut, d.created_at, d.payment_mode, d.payment_deadline,
+               c.nom, c.prenom, c.adresse, c.telephone, c.email
         FROM devis d
         JOIN clients c ON d.client_id = c.id
         WHERE d.id = ?
@@ -577,11 +669,11 @@ def download_pdf(devis_id):
     # Reconstituer les données pour le PDF
     data = {
         'client': {
-            'nom': devis_data[8],      # c.nom
-            'prenom': devis_data[9],   # c.prenom
-            'adresse': devis_data[10], # c.adresse
-            'telephone': devis_data[11], # c.telephone
-            'email': devis_data[12]    # c.email
+            'nom': devis_data[10],      # c.nom
+            'prenom': devis_data[11],   # c.prenom
+            'adresse': devis_data[12],  # c.adresse
+            'telephone': devis_data[13], # c.telephone
+            'email': devis_data[14]     # c.email
         },
         'prestations': [
             {
@@ -590,11 +682,15 @@ def download_pdf(devis_id):
                 'prix_unitaire': ligne[5],
                 'total': ligne[6]
             } for ligne in lignes
-        ]
+        ],
+        'payment': {
+            'mode': devis_data[8],      # d.payment_mode
+            'deadline': devis_data[9]   # d.payment_deadline
+        }
     }
 
     # Passer le numéro de devis au PDF
-    pdf_path = generate_pdf(devis_id, data, devis_data[1])
+    pdf_path = generate_pdf(devis_id, data, devis_data[1])  # numero est toujours à l'index 1
     return send_file(pdf_path, as_attachment=True, download_name=f"devis_{devis_data[1]}.pdf")
 
 @app.route('/signature/<int:devis_id>')
@@ -757,6 +853,125 @@ L'équipe NFS
     }
     return jsonify(templates)
 
+# ========================================
+# SYSTÈME QR CODE POUR DEMANDES CLIENTS
+# ========================================
+
+@app.route('/qr-code')
+def generate_qr_code():
+    """Génère un QR code pour les demandes clients"""
+    # URL vers le formulaire client
+    client_url = request.url_root + 'demande-client'
+
+    # Créer le QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(client_url)
+    qr.make(fit=True)
+
+    # Créer l'image
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+
+    # Convertir en base64 pour l'affichage web
+    buffered = io.BytesIO()
+    qr_img.save(buffered, format="PNG")
+    qr_img_str = base64.b64encode(buffered.getvalue()).decode()
+
+    return render_template('qr_generator.html',
+                         qr_code=qr_img_str,
+                         client_url=client_url)
+
+@app.route('/demande-client')
+def client_request_form():
+    """Formulaire de demande client via QR code"""
+    return render_template('client_request.html')
+
+@app.route('/api/submit-demande', methods=['POST'])
+def submit_client_request():
+    """Soumission d'une demande client"""
+    try:
+        # Récupérer les données du formulaire
+        nom = request.form.get('nom')
+        prenom = request.form.get('prenom')
+        telephone = request.form.get('telephone')
+        email = request.form.get('email', '')
+        adresse = request.form.get('adresse', '')
+        description = request.form.get('description')
+
+        # Gestion de la photo
+        photo_path = None
+        if 'photo' in request.files:
+            photo = request.files['photo']
+            if photo.filename and photo.filename != '':
+                # Créer le dossier uploads s'il n'existe pas
+                upload_dir = 'static/uploads'
+                os.makedirs(upload_dir, exist_ok=True)
+
+                # Sauvegarder avec un nom unique
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"{timestamp}_{photo.filename}"
+                photo_path = os.path.join(upload_dir, filename)
+                photo.save(photo_path)
+
+        # Sauvegarder en base
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO demandes_clients (nom, prenom, telephone, email, adresse, description, photo_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (nom, prenom, telephone, email, adresse, description, photo_path))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True, 'message': 'Demande envoyée avec succès!'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/demandes-clients')
+def client_requests():
+    """Page de gestion des demandes clients"""
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM demandes_clients ORDER BY created_at DESC')
+    demandes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('client_requests_admin.html', demandes=demandes)
+
+@app.route('/api/change-demande-status', methods=['POST'])
+def change_demande_status():
+    """Change le statut d'une demande client"""
+    try:
+        data = request.json
+        demande_id = data.get('demande_id')
+        new_status = data.get('status')
+
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE demandes_clients
+            SET statut = ?
+            WHERE id = ?
+        ''', (new_status, demande_id))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialiser la base de données
     init_db()
@@ -766,4 +981,5 @@ if __name__ == '__main__':
     print("📋 Interface disponible sur: http://localhost:5001")
     print("🎯 Prêt pour la démo !")
 
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=False, host='0.0.0.0', port=port)

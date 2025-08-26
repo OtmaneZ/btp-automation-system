@@ -426,6 +426,23 @@ body::before {
     padding: var(--spacing-xl) !important;
 }
 
+/* Section options de paiement */
+.payment-options-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.payment-options-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
 /* ============================================
    FORM STYLES
    ============================================ */

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes Clients | NFS BÂTIMENT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header-section">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg">
+                <div class="navbar-brand">
+                    <img src="/static/img/logo-nfs.png" alt="NFS Bâtiment" class="navbar-logo">
+                    <div class="navbar-title">
+                        <h1>NFS BÂTIMENT</h1>
+                        <span>Gestion des Demandes</span>
+                    </div>
+                </div>
+                <div class="navbar-nav ms-auto">
+                    <a href="/qr-code" class="btn btn-outline-light me-2">
+                        <i class="fas fa-qrcode"></i> QR Code
+                    </a>
+                    <a href="/" class="btn btn-outline-light">
+                        <i class="fas fa-home"></i> Accueil
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container-fluid px-4 py-4">
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ demandes|length }}</h3>
+                        <p>Demandes totales</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ demandes | selectattr('8', 'equalto', 'nouvelle') | list | length }}</h3>
+                        <p>Nouvelles</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ demandes | selectattr('8', 'equalto', 'vue') | list | length }}</h3>
+                        <p>Vues</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ demandes | selectattr('8', 'equalto', 'traitee') | list | length }}</h3>
+                        <p>Traitées</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demandes List -->
+        <div class="glass-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4><i class="fas fa-list me-2"></i>Demandes Clients</h4>
+                <button class="btn btn-primary" onclick="refreshPage()">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+
+            <div class="card-body">
+                {% if demandes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Contact</th>
+                                <th>Projet</th>
+                                <th>Photo</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for demande in demandes %}
+                            <tr class="demande-row" data-id="{{ demande[0] }}">
+                                <td>
+                                    <small class="text-muted">
+                                        {{ demande[9].split(' ')[0] if demande[9] else 'N/A' }}<br>
+                                        {{ demande[9].split(' ')[1][:5] if demande[9] and ' ' in demande[9] else '' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <strong>{{ demande[2] }} {{ demande[1] }}</strong>
+                                    {% if demande[5] %}
+                                    <br><small class="text-muted">{{ demande[5][:50] }}...</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="contact-info">
+                                        <i class="fas fa-phone text-primary"></i> {{ demande[3] }}<br>
+                                        {% if demande[4] %}
+                                        <i class="fas fa-envelope text-primary"></i> {{ demande[4] }}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="project-desc">
+                                        {{ demande[6][:100] }}{% if demande[6]|length > 100 %}...{% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if demande[7] %}
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="viewPhoto('{{ demande[7] }}')">
+                                        <i class="fas fa-image"></i> Voir
+                                    </button>
+                                    {% else %}
+                                    <span class="text-muted">Aucune</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge badge-{{ 'warning' if demande[8] == 'nouvelle' else 'info' if demande[8] == 'vue' else 'success' }}">
+                                        {{ demande[8].title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group-vertical btn-group-sm">
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="viewDetails({{ demande[0] }})">
+                                            <i class="fas fa-eye"></i> Voir
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm"
+                                            onclick="createDevis({{ demande[0] }})">
+                                            <i class="fas fa-file-alt"></i> Devis
+                                        </button>
+                                        <select class="form-select form-select-sm mt-1"
+                                            onchange="changeStatus({{ demande[0] }}, this.value)">
+                                            <option value="nouvelle" {{ 'selected' if demande[8]=='nouvelle' else '' }}>
+                                                Nouvelle</option>
+                                            <option value="vue" {{ 'selected' if demande[8]=='vue' else '' }}>Vue
+                                            </option>
+                                            <option value="traitee" {{ 'selected' if demande[8]=='traitee' else '' }}>
+                                                Traitée</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucune demande pour le moment</h5>
+                    <p class="text-muted">Partagez votre QR code avec vos clients pour recevoir leurs demandes</p>
+                    <a href="/qr-code" class="btn btn-primary">
+                        <i class="fas fa-qrcode"></i> Générer QR Code
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Photo du projet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalPhoto" src="" class="img-fluid rounded" alt="Photo projet">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails de la demande</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsContent">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" onclick="createDevisFromModal()">Créer un
+                        devis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .badge-warning {
+            background-color: #ffc107 !important;
+        }
+
+        .badge-info {
+            background-color: #17a2b8 !important;
+        }
+
+        .badge-success {
+            background-color: #28a745 !important;
+        }
+
+        .demande-row:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        .contact-info {
+            font-size: 12px;
+        }
+
+        .project-desc {
+            max-width: 200px;
+            font-size: 13px;
+        }
+
+        .btn-group-vertical .form-select {
+            font-size: 11px;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function viewPhoto(photoPath) {
+            const modal = new bootstrap.Modal(document.getElementById('photoModal'));
+            document.getElementById('modalPhoto').src = '/' + photoPath;
+            modal.show();
+        }
+
+        function viewDetails(demandeId) {
+            // Get row data
+            const row = document.querySelector(`tr[data-id="${demandeId}"]`);
+            const cells = row.querySelectorAll('td');
+
+            const detailsContent = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informations client:</h6>
+                        <p><strong>Nom:</strong> ${cells[1].querySelector('strong').textContent}</p>
+                        <p><strong>Contact:</strong><br>${cells[2].innerHTML}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Date de demande:</h6>
+                        <p>${cells[0].textContent.trim()}</p>
+                        <h6>Statut:</h6>
+                        <p>${cells[5].textContent.trim()}</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Description du projet:</h6>
+                    <p class="bg-light p-3 rounded">${cells[3].textContent.trim()}</p>
+                </div>
+            `;
+
+            document.getElementById('detailsContent').innerHTML = detailsContent;
+            const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            modal.show();
+        }
+
+        function changeStatus(demandeId, newStatus) {
+            fetch('/api/change-demande-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    demande_id: demandeId,
+                    status: newStatus
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update badge
+                        const row = document.querySelector(`tr[data-id="${demandeId}"]`);
+                        const badge = row.querySelector('.badge');
+                        badge.className = `badge badge-${newStatus === 'nouvelle' ? 'warning' : newStatus === 'vue' ? 'info' : 'success'}`;
+                        badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de la mise à jour du statut');
+                });
+        }
+
+        function createDevis(demandeId) {
+            // Redirect to main page with pre-filled data
+            window.location.href = `/?from_demande=${demandeId}`;
+        }
+
+        function createDevisFromModal() {
+            const demandeId = document.querySelector('#detailsModal').dataset.demandeId;
+            createDevis(demandeId);
+        }
+
+        function refreshPage() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>

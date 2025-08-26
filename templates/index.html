@@ -36,7 +36,15 @@
                         <p class="header-subtitle">Générateur de Devis Professionnel</p>
                     </div>
                 </div>
-                <div>
+                <div class="btn-group">
+                    <a href="/qr-code" class="btn btn-outline-success me-2">
+                        <i class="fas fa-qrcode me-2"></i>
+                        QR Code Clients
+                    </a>
+                    <a href="/demandes-clients" class="btn btn-outline-info me-2">
+                        <i class="fas fa-inbox me-2"></i>
+                        Demandes Reçues
+                    </a>
                     <a href="/historique" class="btn btn-outline-primary">
                         <i class="fas fa-history me-2"></i>
                         Historique des Devis
@@ -145,6 +153,35 @@
                         <i class="fas fa-file-pdf me-2"></i>
                         Générer & Envoyer le Devis
                     </button>
+
+                    <!-- Options de règlement -->
+                    <div class="payment-options-card">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-credit-card me-2"></i>
+                            Mode de règlement
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Type de règlement</label>
+                                <select class="form-select" id="payment-mode">
+                                    <option value="virement">💳 Virement bancaire</option>
+                                    <option value="cheque">📝 Chèque</option>
+                                    <option value="especes">💰 Espèces</option>
+                                    <option value="cb">💳 Carte bancaire</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Échéance de paiement</label>
+                                <select class="form-select" id="payment-deadline">
+                                    <option value="reception">À réception</option>
+                                    <option value="15j">15 jours</option>
+                                    <option value="30j" selected>30 jours</option>
+                                    <option value="45j">45 jours</option>
+                                    <option value="60j">60 jours</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Options d'envoi -->
                     <div class="email-options-card">
@@ -700,6 +737,16 @@
 
                 console.log('Prestations collectées:', prestationsData); // Debug
 
+                // Collecter les données de paiement
+                const paymentData = {
+                    mode: document.getElementById('payment-mode').value,
+                    deadline: document.getElementById('payment-deadline').value
+                };
+
+                console.log('Données paiement collectées:', paymentData); // Debug
+                console.log('Mode sélectionné:', document.getElementById('payment-mode').value);
+                console.log('Échéance sélectionnée:', document.getElementById('payment-deadline').value);
+
                 // Validation email si envoi activé
                 const sendEmail = document.getElementById('send-email').checked;
                 if (sendEmail && !clientData.email) {
@@ -726,7 +773,8 @@
                     },
                     body: JSON.stringify({
                         client: clientData,
-                        prestations: prestationsData
+                        prestations: prestationsData,
+                        payment: paymentData
                     })
                 });
 
