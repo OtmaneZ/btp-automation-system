@@ -205,6 +205,9 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Initialiser la base de données au démarrage
+init_db()
+
 @app.route('/')
 def index():
     """Page d'accueil - formulaire de devis"""
