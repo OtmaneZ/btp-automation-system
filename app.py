@@ -139,102 +139,37 @@ def init_db():
         )
     ''')
 
-    # Insertion des prestations BTP de base
+    # 22 prestations BTP propres
     prestations_btp = [
-        # MAÇONNERIE
         ('Maçonnerie générale', 'm²', 45.0),
-        ('Fondations béton armé', 'm³', 250.0),
-        ('Mur parpaing 20cm', 'm²', 35.0),
         ('Chape béton', 'm²', 22.0),
         ('Enduit façade', 'm²', 28.0),
-        ('Dalle béton 15cm', 'm²', 45.0),
-        ('Muret clôture', 'ml', 65.0),
-
-        # PLOMBERIE
-        ('Plomberie installation complète', 'forfait', 2500.0),
+        ('Dalle béton', 'm²', 45.0),
+        ('Plomberie complète', 'forfait', 2500.0),
         ('Création point d\'eau', 'unité', 350.0),
         ('Installation WC', 'unité', 180.0),
-        ('Pose lavabo/vasque', 'unité', 150.0),
-        ('Installation douche', 'unité', 450.0),
-        ('Installation baignoire', 'unité', 380.0),
-        ('Raccordement lave-vaisselle', 'unité', 120.0),
-        ('Raccordement lave-linge', 'unité', 95.0),
-
-        # ÉLECTRICITÉ
-        ('Électricité installation complète', 'forfait', 3500.0),
+        ('Électricité complète', 'forfait', 3500.0),
         ('Point luminaire', 'unité', 85.0),
         ('Prise électrique', 'unité', 65.0),
-        ('Interrupteur/va-et-vient', 'unité', 45.0),
-        ('Tableau électrique', 'unité', 650.0),
-        ('Mise à la terre', 'forfait', 450.0),
-        ('Éclairage extérieur', 'unité', 125.0),
-
-        # PEINTURE
-        ('Peinture murs intérieur', 'm²', 25.0),
-        ('Peinture plafond', 'm²', 22.0),
+        ('Peinture murs', 'm²', 25.0),
         ('Peinture façade', 'm²', 35.0),
-        ('Lasure boiseries', 'm²', 28.0),
-        ('Papier peint pose', 'm²', 18.0),
-        ('Préparation support', 'm²', 12.0),
-
-        # CARRELAGE & SOLS
         ('Carrelage sol', 'm²', 35.0),
         ('Carrelage mural', 'm²', 42.0),
         ('Parquet flottant', 'm²', 28.0),
-        ('Parquet massif', 'm²', 65.0),
-        ('Sol PVC/lino', 'm²', 18.0),
-        ('Ragréage sol', 'm²', 15.0),
-        ('Pose plinthes', 'ml', 8.0),
-
-        # ISOLATION & CLOISONS
-        ('Isolation combles perdus', 'm²', 30.0),
-        ('Isolation murs extérieurs', 'm²', 45.0),
-        ('Cloisons placo BA13', 'm²', 40.0),
-        ('Cloisons hydrofuge', 'm²', 48.0),
-        ('Faux plafond placo', 'm²', 35.0),
-        ('Doublage murs', 'm²', 32.0),
-
-        # MENUISERIE
+        ('Isolation combles', 'm²', 30.0),
+        ('Cloisons placo', 'm²', 40.0),
         ('Porte intérieure', 'unité', 200.0),
-        ('Porte d\'entrée', 'unité', 850.0),
         ('Fenêtre PVC', 'm²', 320.0),
-        ('Volet roulant', 'unité', 450.0),
-        ('Placard sur-mesure', 'ml', 280.0),
-        ('Escalier bois', 'unité', 1800.0),
-        ('Garde-corps', 'ml', 150.0),
-
-        # COUVERTURE & TOITURE
         ('Couverture tuiles', 'm²', 55.0),
-        ('Couverture ardoise', 'm²', 85.0),
-        ('Charpente traditionnelle', 'm²', 95.0),
-        ('Gouttières', 'ml', 35.0),
-        ('Étanchéité toit-terrasse', 'm²', 45.0),
-        ('Zinguerie', 'ml', 42.0),
-
-        # CHAUFFAGE & CLIMATISATION
-        ('Radiateur pose', 'unité', 180.0),
-        ('Chaudière gaz', 'unité', 2800.0),
-        ('Poêle à bois', 'unité', 1200.0),
-        ('Climatisation réversible', 'unité', 1800.0),
-        ('Plancher chauffant', 'm²', 65.0),
-
-        # TERRASSEMENT & VRD
         ('Terrassement', 'm³', 25.0),
-        ('Évacuation terre', 'm³', 15.0),
-        ('Remblai', 'm³', 18.0),
-        ('Raccordement égout', 'forfait', 1500.0),
-        ('Création accès', 'forfait', 2500.0),
-
-        # DIVERS
-        ('Démolition cloisons', 'm²', 18.0),
-        ('Nettoyage chantier', 'forfait', 250.0),
-        ('Location benne', 'unité', 180.0),
-        ('Échafaudage', 'm²', 8.0),
         ('Main d\'œuvre', 'heure', 45.0),
     ]
 
+    # SUPPRIMER TOUS LES DOUBLONS AVANT INSERT
+    cursor.execute('DELETE FROM prestations_types')
+
     cursor.executemany('''
-        INSERT OR IGNORE INTO prestations_types (nom, unite, prix_unitaire)
+        INSERT INTO prestations_types (nom, unite, prix_unitaire)
         VALUES (?, ?, ?)
     ''', prestations_btp)
 

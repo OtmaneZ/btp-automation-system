@@ -251,10 +251,6 @@
         const prestationsTypes = {{ prestations | tojson }};
         let prestationCounter = 0;
 
-        // Debug prestations
-        console.log('Prestations chargées:', prestationsTypes);
-        console.log('Nombre de prestations:', prestationsTypes ? prestationsTypes.length : 'undefined');
-
         // Fonction pour organiser les prestations par catégorie
         function getOptGroupsHTML() {
             const categories = {
@@ -272,40 +268,48 @@
             };
 
             let html = '<option value="">Sélectionner...</option>';
-            const usedPrestations = new Set(); // Pour éviter les doublons
 
+            // Set pour tracker les prestations déjà utilisées
+            const usedPrestationIds = new Set();
+
+            // Parcourir chaque catégorie
             for (const [categoryName, keywords] of Object.entries(categories)) {
                 const categoryItems = [];
 
-                // Filtrer les prestations pour cette catégorie sans doublons
-                prestationsTypes.forEach(p => {
-                    const prestationId = p[0]; // ID unique
-                    const nom = p[1].toString().toLowerCase();
+                // Trouver les prestations qui correspondent à cette catégorie
+                prestationsTypes.forEach(prestation => {
+                    const prestationId = prestation[0];
+                    const nom = prestation[1].toLowerCase();
 
-                    // Si pas déjà utilisée et correspond à un mot-clé
-                    if (!usedPrestations.has(prestationId) &&
-                        keywords.some(keyword => nom.includes(keyword))) {
-                        categoryItems.push(p);
-                        usedPrestations.add(prestationId); // Marquer comme utilisée
+                    // Éviter les doublons et vérifier si le nom contient un mot-clé de la catégorie
+                    if (!usedPrestationIds.has(prestationId)) {
+                        const matchesCategory = keywords.some(keyword => nom.includes(keyword));
+                        if (matchesCategory) {
+                            categoryItems.push(prestation);
+                            usedPrestationIds.add(prestationId);
+                        }
                     }
                 });
 
-                // Ajouter la catégorie si elle contient des éléments
+                // Ajouter la catégorie si elle a des prestations
                 if (categoryItems.length > 0) {
                     html += `<optgroup label="${categoryName}">`;
-                    categoryItems.forEach(p => {
-                        html += `<option value="${p[0]}" data-prix="${p[3]}" data-unite="${p[2]}">${p[1]} - ${p[3]} €/${p[2]}</option>`;
+                    categoryItems.forEach(prestation => {
+                        html += `<option value="${prestation[0]}" data-prix="${prestation[3]}" data-unite="${prestation[2]}">${prestation[1]} - ${prestation[3]} €/${prestation[2]}</option>`;
                     });
                     html += '</optgroup>';
                 }
             }
 
             // Ajouter les prestations non classées dans "AUTRES"
-            const otherItems = prestationsTypes.filter(p => !usedPrestations.has(p[0]));
-            if (otherItems.length > 0) {
+            const uncategorizedItems = prestationsTypes.filter(prestation =>
+                !usedPrestationIds.has(prestation[0])
+            );
+
+            if (uncategorizedItems.length > 0) {
                 html += `<optgroup label="📦 AUTRES">`;
-                otherItems.forEach(p => {
-                    html += `<option value="${p[0]}" data-prix="${p[3]}" data-unite="${p[2]}">${p[1]} - ${p[3]} €/${p[2]}</option>`;
+                uncategorizedItems.forEach(prestation => {
+                    html += `<option value="${prestation[0]}" data-prix="${prestation[3]}" data-unite="${prestation[2]}">${prestation[1]} - ${prestation[3]} €/${prestation[2]}</option>`;
                 });
                 html += '</optgroup>';
             }
