@@ -184,6 +184,27 @@ def init_db():
         )
     ''')
 
+    # Table chantiers pour le planning
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chantiers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom_chantier TEXT NOT NULL,
+            client_nom TEXT NOT NULL,
+            client_telephone TEXT,
+            adresse TEXT NOT NULL,
+            description TEXT,
+            date_debut DATE NOT NULL,
+            date_fin DATE,
+            statut TEXT DEFAULT 'planifie',
+            priorite TEXT DEFAULT 'normale',
+            montant_prevu REAL,
+            devis_id INTEGER,
+            couleur TEXT DEFAULT '#667eea',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (devis_id) REFERENCES devis (id)
+        )
+    ''')
+
     # 22 prestations BTP propres
     prestations_btp = [
         ('Maçonnerie générale', 'm²', 45.0),
@@ -304,7 +325,133 @@ def contact_form():
 # ROUTES ADMIN (PROTÉGÉES)
 # ========================================
 
-@app.route('/admin/historique')
+@app.route('/admin/planning')
+@login_required
+def admin_planning():
+    """Planning des chantiers"""
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    
+    # Récupérer tous les chantiers
+    cursor.execute('''
+        SELECT id, nom_chantier, client_nom, adresse, date_debut, date_fin, 
+               statut, priorite, montant_prevu, couleur, description
+        FROM chantiers 
+        ORDER BY date_debut ASC
+    ''')
+    chantiers = cursor.fetchall()
+    
+    conn.close()
+    
+    return render_template('admin/planning.html', chantiers=chantiers)
+
+@app.route('/api/chantiers', methods=['GET'])
+@login_required
+def get_chantiers():
+    """API pour récupérer les chantiers (format FullCalendar)"""
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, nom_chantier, client_nom, date_debut, date_fin, 
+               statut, couleur, montant_prevu, description
+        FROM chantiers
+    ''')
+    chantiers = cursor.fetchall()
+    conn.close()
+    
+    # Convertir en format FullCalendar
+    events = []
+    for chantier in chantiers:
+        events.append({
+            'id': chantier[0],
+            'title': f"{chantier[1]} - {chantier[2]}",
+            'start': chantier[3],
+            'end': chantier[4] or chantier[3],  # Si pas de date fin, même jour
+            'backgroundColor': chantier[6] or '#667eea',
+            'borderColor': chantier[6] or '#667eea',
+            'extendedProps': {
+                'statut': chantier[5],
+                'montant': chantier[7],
+                'description': chantier[8]
+            }
+        })
+    
+    return jsonify(events)
+
+@app.route('/api/chantiers', methods=['POST'])
+@login_required
+def create_chantier():
+    """Créer un nouveau chantier"""
+    try:
+        data = request.json
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO chantiers (nom_chantier, client_nom, client_telephone, 
+                                 adresse, description, date_debut, date_fin, 
+                                 statut, priorite, montant_prevu, couleur)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            data['nom_chantier'],
+            data['client_nom'],
+            data.get('client_telephone', ''),
+            data['adresse'],
+            data.get('description', ''),
+            data['date_debut'],
+            data.get('date_fin'),
+            data.get('statut', 'planifie'),
+            data.get('priorite', 'normale'),
+            data.get('montant_prevu', 0),
+            data.get('couleur', '#667eea')
+        ))
+        
+        chantier_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'id': chantier_id})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/chantiers/<int:chantier_id>', methods=['PUT'])
+@login_required
+def update_chantier(chantier_id):
+    """Mettre à jour un chantier"""
+    try:
+        data = request.json
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE chantiers 
+            SET nom_chantier=?, client_nom=?, adresse=?, date_debut=?, 
+                date_fin=?, statut=?, couleur=?, montant_prevu=?, description=?
+            WHERE id=?
+        ''', (
+            data['nom_chantier'],
+            data['client_nom'],
+            data['adresse'],
+            data['date_debut'],
+            data.get('date_fin'),
+            data.get('statut', 'planifie'),
+            data.get('couleur', '#667eea'),
+            data.get('montant_prevu', 0),
+            data.get('description', ''),
+            chantier_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/historique')
 @login_required
 def historique():
     """Page d'historique des devis"""

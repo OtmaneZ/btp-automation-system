@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Chantiers - NFS BÂTIMENT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header-section">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg">
+                <div class="navbar-brand">
+                    <img src="/static/img/logo-nfs.png" alt="NFS Bâtiment" class="navbar-logo">
+                    <div class="navbar-title">
+                        <h1>NFS BÂTIMENT</h1>
+                        <span>Planning Chantiers</span>
+                    </div>
+                </div>
+                <div class="navbar-nav ms-auto">
+                    <a href="/admin/dashboard" class="btn btn-outline-light me-2">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="/admin/demandes" class="btn btn-outline-light me-2">
+                        <i class="fas fa-inbox"></i> Demandes
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-shield me-2"></i>Admin
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Voir le site
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/admin/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container-fluid px-4 py-4">
+        <!-- Stats rapides -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalChantiers">0</h3>
+                        <p>Chantiers totaux</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="chantiersEnCours">0</h3>
+                        <p>En cours</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="chantiersAujourdhui">0</h3>
+                        <p>Aujourd'hui</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success">
+                        <i class="fas fa-euro-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="montantTotal">0€</h3>
+                        <p>CA prévisionnel</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning principal -->
+        <div class="row">
+            <div class="col-12">
+                <div class="glass-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-calendar me-2"></i>Planning des Chantiers</h4>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="openAddChantierModal()">
+                                <i class="fas fa-plus me-2"></i>Nouveau Chantier
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-filter me-2"></i>Filtrer
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('tous')">Tous</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('planifie')">Planifiés</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('en_cours')">En cours</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="filterByStatus('termine')">Terminés</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Légende -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="legend-card">
+                    <h6><i class="fas fa-info-circle me-2"></i>Légende</h6>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #6c757d;"></div>
+                            <span>Planifié</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #fd7e14;"></div>
+                            <span>En cours</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #28a745;"></div>
+                            <span>Terminé</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #dc3545;"></div>
+                            <span>Urgence</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajouter/Modifier Chantier -->
+    <div class="modal fade" id="chantierModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        <span id="modalTitle">Nouveau Chantier</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="chantierForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nom du chantier *</label>
+                                <input type="text" class="form-control" id="nomChantier" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client *</label>
+                                <input type="text" class="form-control" id="clientNom" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Téléphone client</label>
+                                <input type="tel" class="form-control" id="clientTelephone">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Montant prévisionnel</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="montantPrevu" step="0.01" min="0">
+                                    <span class="input-group-text">€</span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Adresse *</label>
+                                <textarea class="form-control" id="adresse" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date début *</label>
+                                <input type="date" class="form-control" id="dateDebut" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date fin</label>
+                                <input type="date" class="form-control" id="dateFin">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Statut</label>
+                                <select class="form-select" id="statut">
+                                    <option value="planifie">Planifié</option>
+                                    <option value="en_cours">En cours</option>
+                                    <option value="termine">Terminé</option>
+                                    <option value="reporte">Reporté</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Priorité</label>
+                                <select class="form-select" id="priorite">
+                                    <option value="normale">Normale</option>
+                                    <option value="haute">Haute</option>
+                                    <option value="urgence">Urgence</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Couleur</label>
+                                <input type="color" class="form-control form-control-color" id="couleur" value="#667eea">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="saveChantier()">
+                        <i class="fas fa-save me-2"></i>Sauvegarder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .legend-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        #calendar {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .fc-event {
+            border-radius: 6px !important;
+            border: none !important;
+        }
+
+        .fc-daygrid-event {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/fr.js'></script>
+    
+    <script>
+        let calendar;
+        let currentChantier = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCalendar();
+            loadStats();
+        });
+
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                },
+                height: 'auto',
+                editable: true,
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                weekends: true,
+                
+                events: '/api/chantiers',
+                
+                eventClick: function(info) {
+                    // Afficher les détails du chantier
+                    showChantierDetails(info.event);
+                },
+                
+                select: function(info) {
+                    // Créer un nouveau chantier à cette date
+                    openAddChantierModal(info.start);
+                },
+
+                eventDrop: function(info) {
+                    // Mettre à jour les dates quand on déplace un événement
+                    updateChantierDates(info.event);
+                }
+            });
+
+            calendar.render();
+        }
+
+        function loadStats() {
+            fetch('/api/chantiers')
+                .then(response => response.json())
+                .then(data => {
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    document.getElementById('totalChantiers').textContent = data.length;
+                    
+                    const enCours = data.filter(c => c.extendedProps.statut === 'en_cours').length;
+                    document.getElementById('chantiersEnCours').textContent = enCours;
+                    
+                    const aujourdhui = data.filter(c => c.start <= today && (c.end || c.start) >= today).length;
+                    document.getElementById('chantiersAujourdhui').textContent = aujourdhui;
+                    
+                    const montantTotal = data.reduce((sum, c) => sum + (c.extendedProps.montant || 0), 0);
+                    document.getElementById('montantTotal').textContent = montantTotal.toLocaleString() + '€';
+                });
+        }
+
+        function openAddChantierModal(date = null) {
+            currentChantier = null;
+            document.getElementById('modalTitle').textContent = 'Nouveau Chantier';
+            document.getElementById('chantierForm').reset();
+            
+            if (date) {
+                document.getElementById('dateDebut').value = date.toISOString().split('T')[0];
+            }
+            
+            new bootstrap.Modal(document.getElementById('chantierModal')).show();
+        }
+
+        function showChantierDetails(event) {
+            // Afficher modal avec détails + possibilité de modifier
+            currentChantier = event;
+            document.getElementById('modalTitle').textContent = 'Modifier Chantier';
+            
+            // Remplir le formulaire avec les données existantes
+            document.getElementById('nomChantier').value = event.title.split(' - ')[0];
+            document.getElementById('clientNom').value = event.title.split(' - ')[1];
+            document.getElementById('dateDebut').value = event.start.toISOString().split('T')[0];
+            if (event.end) {
+                document.getElementById('dateFin').value = event.end.toISOString().split('T')[0];
+            }
+            document.getElementById('couleur').value = event.backgroundColor;
+            document.getElementById('description').value = event.extendedProps.description || '';
+            document.getElementById('montantPrevu').value = event.extendedProps.montant || '';
+            document.getElementById('statut').value = event.extendedProps.statut || 'planifie';
+            
+            new bootstrap.Modal(document.getElementById('chantierModal')).show();
+        }
+
+        async function saveChantier() {
+            const formData = {
+                nom_chantier: document.getElementById('nomChantier').value,
+                client_nom: document.getElementById('clientNom').value,
+                client_telephone: document.getElementById('clientTelephone').value,
+                adresse: document.getElementById('adresse').value,
+                date_debut: document.getElementById('dateDebut').value,
+                date_fin: document.getElementById('dateFin').value || null,
+                statut: document.getElementById('statut').value,
+                priorite: document.getElementById('priorite').value,
+                montant_prevu: parseFloat(document.getElementById('montantPrevu').value) || 0,
+                couleur: document.getElementById('couleur').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                let url = '/api/chantiers';
+                let method = 'POST';
+                
+                if (currentChantier) {
+                    url += '/' + currentChantier.id;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('chantierModal')).hide();
+                    calendar.refetchEvents();
+                    loadStats();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+                console.error('Error:', error);
+            }
+        }
+
+        function filterByStatus(status) {
+            // Filtrer les événements par statut
+            const events = calendar.getEvents();
+            
+            if (status === 'tous') {
+                events.forEach(event => event.setProp('display', 'auto'));
+            } else {
+                events.forEach(event => {
+                    const eventStatus = event.extendedProps.statut;
+                    event.setProp('display', eventStatus === status ? 'auto' : 'none');
+                });
+            }
+        }
+
+        function updateChantierDates(event) {
+            const formData = {
+                nom_chantier: event.title.split(' - ')[0],
+                client_nom: event.title.split(' - ')[1],
+                adresse: event.extendedProps.adresse || '',
+                date_debut: event.start.toISOString().split('T')[0],
+                date_fin: event.end ? event.end.toISOString().split('T')[0] : null,
+                statut: event.extendedProps.statut,
+                couleur: event.backgroundColor,
+                montant_prevu: event.extendedProps.montant,
+                description: event.extendedProps.description
+            };
+
+            fetch(`/api/chantiers/${event.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (!result.success) {
+                    alert('Erreur lors de la mise à jour');
+                    calendar.refetchEvents(); // Recharger en cas d'erreur
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                calendar.refetchEvents();
+            });
+        }
+    </script>
+</body>
+</html>
