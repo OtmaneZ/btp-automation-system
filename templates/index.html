@@ -268,6 +268,7 @@
             };
 
             let html = '<option value="">Sélectionner...</option>';
+            html += '<option value="custom">✏️ Prestation personnalisée</option>';
 
             // Set pour tracker les prestations déjà utilisées
             const usedPrestationIds = new Set();
@@ -335,6 +336,24 @@
                             <select class="form-select" onchange="updatePrestationPrice(${prestationId})" id="type-${prestationId}">
                                 ${getOptGroupsHTML()}
                             </select>
+
+                            <!-- Champs personnalisés cachés par défaut -->
+                            <div class="custom-fields" id="custom-fields-${prestationId}" style="display: none;">
+                                <div class="row mt-2">
+                                    <div class="col-md-8">
+                                        <label class="form-label">Nom de la prestation</label>
+                                        <input type="text" class="form-control" id="custom-name-${prestationId}"
+                                               placeholder="Ex: Pose carrelage spécial"
+                                               onchange="updateCustomDescription(${prestationId})">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Unité</label>
+                                        <input type="text" class="form-control" id="custom-unit-${prestationId}"
+                                               placeholder="m², unité, forfait..."
+                                               onchange="updateCustomDescription(${prestationId})">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-3 mb-2">
                             <label class="form-label">Quantité</label>
@@ -374,13 +393,51 @@
             const prixInput = document.getElementById(`prix-${id}`);
             const descInput = document.getElementById(`description-${id}`);
 
-            if (select.value) {
+            if (select.value === 'custom') {
+                // Mode prestation personnalisée
+                toggleCustomMode(id, true);
+                prixInput.value = '';
+                descInput.value = '';
+                calculatePrestation(id);
+            } else if (select.value) {
+                // Mode prestation prédéfinie
+                toggleCustomMode(id, false);
                 const option = select.selectedOptions[0];
                 prixInput.value = option.dataset.prix;
                 if (!descInput.value) {
                     descInput.value = option.text;
                 }
                 calculatePrestation(id);
+            } else {
+                // Aucune sélection
+                toggleCustomMode(id, false);
+                prixInput.value = '';
+                descInput.value = '';
+            }
+        }
+
+        function toggleCustomMode(id, isCustom) {
+            const customFields = document.getElementById(`custom-fields-${id}`);
+            const select = document.getElementById(`type-${id}`);
+
+            if (isCustom) {
+                customFields.style.display = 'block';
+                select.style.display = 'none';
+            } else {
+                customFields.style.display = 'none';
+                select.style.display = 'block';
+            }
+        }
+
+        function updateCustomDescription(id) {
+            const customName = document.getElementById(`custom-name-${id}`).value;
+            const customUnit = document.getElementById(`custom-unit-${id}`).value;
+            const descInput = document.getElementById(`description-${id}`);
+
+            if (customName && customUnit) {
+                descInput.value = `${customName} - Prix par ${customUnit}`;
+            } else if (customName) {
+                descInput.value = customName;
             }
         }
 
@@ -612,7 +669,20 @@
                 const prestationsData = [];
                 document.querySelectorAll('[id^="prestation-"]').forEach(div => {
                     const id = div.id.split('-')[1];
-                    const description = document.getElementById(`description-${id}`)?.value;
+                    const select = document.getElementById(`type-${id}`);
+                    let description = '';
+
+                    // Vérifier si c'est une prestation personnalisée
+                    if (select.value === 'custom') {
+                        const customName = document.getElementById(`custom-name-${id}`)?.value || '';
+                        const customUnit = document.getElementById(`custom-unit-${id}`)?.value || '';
+                        if (customName && customUnit) {
+                            description = `${customName} (${customUnit})`;
+                        }
+                    } else {
+                        description = document.getElementById(`description-${id}`)?.value;
+                    }
+
                     const quantite = parseFloat(document.getElementById(`quantite-${id}`)?.value);
                     const prix = parseFloat(document.getElementById(`prix-${id}`)?.value);
                     const total = parseFloat(document.getElementById(`total-${id}`)?.value);
