@@ -43,6 +43,7 @@ COMPANY_INFO = {
     'rcs': '911 840 122 R.C.S. Nice',
     'tva': 'FR01911840122',
     'ape': '4334Z',
+    'specialites': ['Second œuvre', 'Démolition', 'Décontamination', 'Assèchement', 'Faux plafonds', 'Plâtrerie'],
     'capital': '1500 €',
     'bank': {
         'name': 'CREDIT AGRICOLE',
