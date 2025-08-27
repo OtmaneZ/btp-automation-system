@@ -1,0 +1,123 @@
+# =====================================
+# .dockerignore - BTP Automation System
+# Optimizing Docker build performance and security
+# =====================================
+
+# Development and local files
+**/.git
+**/.gitignore
+**/README.md
+**/CHANGELOG.md
+**/CONTRIBUTING.md
+**/LICENSE
+**/.vscode
+**/.idea
+
+# Python cache and temporary files
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/build
+**/develop-eggs
+**/dist
+**/downloads
+**/eggs
+**/.eggs
+**/lib
+**/lib64
+**/parts
+**/sdist
+**/var
+**/wheels
+**/*.egg-info
+**/.installed.cfg
+**/MANIFEST
+
+# Virtual environments
+**/.env
+**/.venv
+**/env
+**/venv
+**/ENV
+**/env.bak
+**/venv.bak
+
+# Environment and configuration files
+**/.env*
+**/config.local.*
+**/secrets.*
+
+# Database files (will be mounted as volume)
+**/devis.db
+**/devis.db-*
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Log files
+**/logs
+**/*.log
+**/log.*
+
+# Testing files
+**/.pytest_cache
+**/.coverage
+**/htmlcov
+**/coverage.*
+**/.tox
+**/.nox
+
+# Documentation
+**/docs
+**/*.md
+
+# Docker files (avoid recursion)
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore
+
+# CI/CD files
+**/.github
+**/.gitlab-ci.yml
+**/azure-pipelines.yml
+**/Jenkinsfile
+
+# Backup files
+**/*~
+**/*.bak
+**/*.swp
+**/*.swo
+
+# OS generated files
+**/.DS_Store
+**/.DS_Store?
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/ehthumbs.db
+**/Thumbs.db
+
+# Node.js (if any frontend dependencies)
+**/node_modules
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Temporary uploads (will be handled by volumes)
+**/uploads/*
+**/tmp/*
+**/temp/*
+
+# Security sensitive files
+**/private_keys
+**/certificates
+**/*.pem
+**/*.key
+**/*.crt
+
+# Local development tools
+**/locustfile.py
+**/performance_test*
+**/load_test*

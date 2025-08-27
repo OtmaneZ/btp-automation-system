@@ -28,7 +28,7 @@ We maintain security updates for the following versions of BTP Automation System
 
 ### Update Policy
 - **Critical vulnerabilities**: Patched within 24 hours
-- **High-severity issues**: Resolved within 72 hours  
+- **High-severity issues**: Resolved within 72 hours
 - **Medium/Low issues**: Addressed in next scheduled release
 
 ---
@@ -108,7 +108,7 @@ Database Security:                 ✅ Encrypted, Access Controls
 
 ### Code Security
 - **Static Application Security Testing** (SAST) integrated in CI/CD
-- **Dependency vulnerability scanning** with automated updates  
+- **Dependency vulnerability scanning** with automated updates
 - **Input validation** and sanitization on all user inputs
 - **SQL injection prevention** through parameterized queries
 - **XSS protection** via content security policy headers
@@ -127,7 +127,7 @@ Database Security:                 ✅ Encrypted, Access Controls
 ```python
 # Daily automated security scans
 - Vulnerability assessment
-- Port scanning detection  
+- Port scanning detection
 - SSL certificate validation
 - Database integrity checks
 - Log analysis for suspicious activity
@@ -135,7 +135,7 @@ Database Security:                 ✅ Encrypted, Access Controls
 
 ### Incident Response
 1. **Detection**: Automated monitoring triggers alert
-2. **Assessment**: Security team evaluates threat level  
+2. **Assessment**: Security team evaluates threat level
 3. **Containment**: Immediate isolation of affected systems
 4. **Eradication**: Root cause analysis and vulnerability patching
 5. **Recovery**: Service restoration with enhanced monitoring
@@ -192,7 +192,7 @@ graph LR
 ```yaml
 Dependency Management:
   - Automated vulnerability scanning
-  - Regular updates with compatibility testing  
+  - Regular updates with compatibility testing
   - License compliance verification
   - Supply chain attack prevention
 
@@ -266,7 +266,7 @@ Content-Security-Policy: default-src 'self'
 
 ### External Security Audits
 - **Annual penetration testing** by certified security firms
-- **Quarterly vulnerability assessments** 
+- **Quarterly vulnerability assessments**
 - **Compliance audits** for client requirements
 - **Red team exercises** for incident response testing
 
@@ -276,7 +276,7 @@ Content-Security-Policy: default-src 'self'
 
 ### Security Team
 **Primary Contact**: `security@zineinsight.com`
-**Security Lead**: Otmane Boulahia - Senior Security Engineer  
+**Security Lead**: Otmane Boulahia - Senior Security Engineer
 **Business Hours**: Monday-Friday, 9:00-18:00 CET
 **Emergency Response**: Available 24/7 for critical incidents
 
@@ -291,7 +291,7 @@ Content-Security-Policy: default-src 'self'
 
 ### Regulatory Compliance
 - **GDPR** (General Data Protection Regulation)
-- **ISO 27001** Information Security Management  
+- **ISO 27001** Information Security Management
 - **SOC 2 Type II** (Planned certification)
 - **French Data Protection** (CNIL compliance)
 
@@ -316,7 +316,7 @@ This security policy is governed by:
 
 ### Change History
 - **v2.0** (Aug 2025): Complete security framework overhaul
-- **v1.5** (Jun 2025): Added GDPR compliance section  
+- **v1.5** (Jun 2025): Added GDPR compliance section
 - **v1.0** (Jan 2025): Initial security policy creation
 
 ---
