@@ -1,3 +1,5 @@
+import secrets
+import time
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, flash
 import sqlite3
 from datetime import datetime, timedelta
@@ -22,7 +24,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
 app = Flask(__name__)
-app.secret_key = 'nfs-batiment-secret-key-2025'  # Clé pour les sessions
+# Clé secrète plus sécurisée depuis les variables d'environnement
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+
+# Protection contre les attaques par force brute
+LOGIN_ATTEMPTS = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_TIME = 300  # 5 minutes
 
 # Configuration email
 EMAIL_CONFIG = {
@@ -35,6 +43,17 @@ EMAIL_CONFIG = {
 
 # Configuration base de données
 DATABASE = 'devis.db'
+
+# Headers de sécurité
+@app.after_request
+def add_security_headers(response):
+    """Ajoute des headers de sécurité"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 # OPTIMISATION RENDER: Route de health check
 @app.route('/health')
@@ -65,10 +84,10 @@ COMPANY_INFO = {
     }
 }
 
-# Identifiants admin (en production, mettre dans des variables d'environnement)
+# Identifiants admin sécurisés (depuis variables d'environnement)
 ADMIN_CREDENTIALS = {
-    'email': 'admin@nfs-batiment.fr',
-    'password': hashlib.sha256('nfs2025'.encode()).hexdigest()  # Mot de passe: nfs2025
+    'email': os.environ.get('ADMIN_EMAIL', 'admin@nfs-batiment.fr'),
+    'password': hashlib.sha256(os.environ.get('ADMIN_PASSWORD', 'NFS@2025#Secure!').encode()).hexdigest()
 }
 
 def login_required(f):
@@ -79,6 +98,42 @@ def login_required(f):
             return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def is_ip_blocked(ip):
+    """Vérifie si une IP est bloquée après trop de tentatives"""
+    if ip not in LOGIN_ATTEMPTS:
+        return False
+
+    attempts, last_attempt = LOGIN_ATTEMPTS[ip]
+
+    # Si plus de MAX_LOGIN_ATTEMPTS tentatives dans les LOCKOUT_TIME dernières secondes
+    if attempts >= MAX_LOGIN_ATTEMPTS and (time.time() - last_attempt) < LOCKOUT_TIME:
+        return True
+
+    # Reset si le lockout est expiré
+    if (time.time() - last_attempt) >= LOCKOUT_TIME:
+        LOGIN_ATTEMPTS.pop(ip, None)
+
+    return False
+
+def record_login_attempt(ip, success=False):
+    """Enregistre une tentative de connexion"""
+    if success:
+        # Succès - reset les tentatives
+        LOGIN_ATTEMPTS.pop(ip, None)
+    else:
+        # Échec - incrémenter
+        if ip in LOGIN_ATTEMPTS:
+            attempts, _ = LOGIN_ATTEMPTS[ip]
+            LOGIN_ATTEMPTS[ip] = (attempts + 1, time.time())
+        else:
+            LOGIN_ATTEMPTS[ip] = (1, time.time())
+
+def get_client_ip():
+    """Récupère l'IP du client (gère les proxies)"""
+    if 'X-Forwarded-For' in request.headers:
+        return request.headers['X-Forwarded-For'].split(',')[0].strip()
+    return request.remote_addr
 
 # Nettoyer les PDFs temporaires au démarrage et à l'arrêt
 def cleanup_temp_pdfs():
@@ -281,16 +336,31 @@ def admin_login():
 
 @app.route('/admin/login', methods=['POST'])
 def admin_login_post():
-    """Traitement de la connexion admin"""
+    """Traitement de la connexion admin avec protection brute force"""
+    client_ip = get_client_ip()
+
+    # Vérifier si l'IP est bloquée
+    if is_ip_blocked(client_ip):
+        flash('Trop de tentatives échouées. Réessayez dans 5 minutes.', 'error')
+        return redirect(url_for('admin_login'))
+
     email = request.form.get('email')
     password = request.form.get('password')
 
-    if email == ADMIN_CREDENTIALS['email'] and hashlib.sha256(password.encode()).hexdigest() == ADMIN_CREDENTIALS['password']:
+    # Vérification des identifiants
+    if (email == ADMIN_CREDENTIALS['email'] and
+        hashlib.sha256(password.encode()).hexdigest() == ADMIN_CREDENTIALS['password']):
+
+        # Succès
+        record_login_attempt(client_ip, success=True)
         session['admin_logged_in'] = True
+        session['admin_email'] = email  # Stocker l'email pour l'affichage
         flash('Connexion réussie !', 'success')
         return redirect(url_for('admin_dashboard'))
     else:
-        flash('Email ou mot de passe incorrect', 'error')
+        # Échec
+        record_login_attempt(client_ip, success=False)
+        flash('Identifiants incorrects', 'error')
         return redirect(url_for('admin_login'))
 
 @app.route('/admin/logout')
@@ -299,6 +369,29 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     flash('Vous êtes déconnecté', 'info')
     return redirect(url_for('index'))
+
+@app.route('/admin/security-status')
+@login_required
+def admin_security_status():
+    """Diagnostic de sécurité pour les admins"""
+    security_checks = {
+        'secret_key_secure': len(app.secret_key) >= 32,
+        'email_configured': EMAIL_CONFIG['enabled'],
+        'admin_email_from_env': os.environ.get('ADMIN_EMAIL') is not None,
+        'admin_password_from_env': os.environ.get('ADMIN_PASSWORD') is not None,
+        'using_https': request.is_secure or request.headers.get('X-Forwarded-Proto') == 'https'
+    }
+
+    return jsonify({
+        'security_status': security_checks,
+        'blocked_ips': len(LOGIN_ATTEMPTS),
+        'recommendations': [
+            'Définir SECRET_KEY dans les variables d\'environnement' if not security_checks['secret_key_secure'] else None,
+            'Définir ADMIN_EMAIL dans les variables d\'environnement' if not security_checks['admin_email_from_env'] else None,
+            'Définir ADMIN_PASSWORD dans les variables d\'environnement' if not security_checks['admin_password_from_env'] else None,
+            'Configurer EMAIL_PASSWORD pour les emails' if not security_checks['email_configured'] else None
+        ]
+    })
 
 @app.route('/admin/dashboard')
 @login_required
@@ -903,11 +996,11 @@ def generate_devis_pdf_data(data):
     """Génère les données PDF du devis en mémoire (pour email)"""
     # Créer un buffer en mémoire
     pdf_buffer = io.BytesIO()
-    
+
     # Créer le PDF
     c = canvas.Canvas(pdf_buffer, pagesize=A4)
     width, height = A4
-    
+
     # En-tête avec logo et informations entreprise
     try:
         logo_path = os.path.join('static', 'img', 'logo-nfs.png')
@@ -960,16 +1053,16 @@ def generate_devis_pdf_data(data):
     y_pos -= 20
     c.setFont("Helvetica", 10)
     c.drawString(50, y_pos, data.get('nom', ''))
-    
+
     y_pos -= 15
     if data.get('adresse'):
         c.drawString(50, y_pos, data.get('adresse', ''))
         y_pos -= 15
-    
+
     if data.get('telephone'):
         c.drawString(50, y_pos, f"Tél: {data.get('telephone', '')}")
         y_pos -= 15
-    
+
     if data.get('email'):
         c.drawString(50, y_pos, f"Email: {data.get('email', '')}")
 
@@ -989,7 +1082,7 @@ def generate_devis_pdf_data(data):
     y_pos -= 20
     c.setFont("Helvetica", 9)
     total_ht = 0
-    
+
     prestations = data.get('prestations', [])
     if isinstance(prestations, str):
         # Si c'est une string, on la parse
@@ -998,7 +1091,7 @@ def generate_devis_pdf_data(data):
             prestations = json.loads(prestations)
         except:
             prestations = []
-    
+
     for prestation in prestations:
         if isinstance(prestation, dict):
             designation = prestation.get('designation', '')
@@ -1010,7 +1103,7 @@ def generate_devis_pdf_data(data):
             # Wrapping du texte si trop long
             if len(designation) > 35:
                 designation = designation[:32] + "..."
-            
+
             c.drawString(50, y_pos, designation)
             c.drawString(365, y_pos, str(quantite))
             c.drawString(430, y_pos, f"{prix_unitaire:.2f} €")
@@ -1021,15 +1114,15 @@ def generate_devis_pdf_data(data):
     y_pos -= 20
     c.line(400, y_pos, 550, y_pos)
     y_pos -= 15
-    
+
     c.setFont("Helvetica-Bold", 10)
     c.drawString(450, y_pos, f"Total HT: {total_ht:.2f} €")
-    
+
     tva_rate = 0.20
     tva_amount = total_ht * tva_rate
     y_pos -= 15
     c.drawString(450, y_pos, f"TVA 20%: {tva_amount:.2f} €")
-    
+
     total_ttc = total_ht + tva_amount
     y_pos -= 15
     c.setFillColor(HexColor("#e74c3c"))
@@ -1040,7 +1133,7 @@ def generate_devis_pdf_data(data):
     y_pos -= 40
     c.setFont("Helvetica-Bold", 10)
     c.drawString(50, y_pos, "CONDITIONS:")
-    
+
     y_pos -= 15
     c.setFont("Helvetica", 9)
     conditions = [
@@ -1049,7 +1142,7 @@ def generate_devis_pdf_data(data):
         "• TVA applicable selon réglementation en vigueur",
         f"• Nos spécialités: {', '.join(COMPANY_INFO['specialites'])}"
     ]
-    
+
     for condition in conditions:
         c.drawString(50, y_pos, condition)
         y_pos -= 12
@@ -1077,7 +1170,7 @@ def generate_devis_pdf_data(data):
     pdf_buffer.seek(0)
     pdf_data = pdf_buffer.read()
     pdf_buffer.close()
-    
+
     return pdf_data
 
 @app.route('/download-pdf/<int:devis_id>')
@@ -1422,7 +1515,7 @@ def send_email(to_email, subject, html_content, pdf_attachment=None, attachment_
     if not EMAIL_CONFIG['enabled']:
         print(f"📧 Email désactivé - pas de mot de passe configuré")
         return False
-        
+
     try:
         # Créer le message
         msg = MIMEMultipart('alternative')
@@ -1445,10 +1538,10 @@ def send_email(to_email, subject, html_content, pdf_attachment=None, attachment_
             server.starttls()
             server.login(EMAIL_CONFIG['email'], EMAIL_CONFIG['password'])
             server.send_message(msg)
-            
+
         print(f"📧 Email envoyé avec succès à {to_email}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Erreur envoi email: {e}")
         return False
@@ -1458,16 +1551,16 @@ def send_devis_email():
     """Endpoint pour envoyer un devis par email"""
     try:
         data = request.get_json()
-        
+
         client_email = data.get('email')
         devis_data = data.get('devis')
-        
+
         if not client_email or not devis_data:
             return jsonify({'success': False, 'error': 'Email et données devis requis'}), 400
-            
+
         # Générer le PDF en mémoire
         pdf_buffer = generate_devis_pdf_data(devis_data)
-        
+
         # Template email HTML
         html_content = f"""
         <!DOCTYPE html>
@@ -1476,7 +1569,7 @@ def send_devis_email():
             <meta charset="utf-8">
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                            color: white; padding: 20px; border-radius: 8px; }}
                 .content {{ padding: 20px; }}
                 .footer {{ background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; }}
@@ -1487,31 +1580,31 @@ def send_devis_email():
                 <h1>🏗️ {COMPANY_INFO['name']}</h1>
                 <p>Votre devis personnalisé</p>
             </div>
-            
+
             <div class="content">
                 <h2>Bonjour {devis_data.get('nom', 'Cher client')},</h2>
-                
+
                 <p>Nous avons le plaisir de vous transmettre votre devis personnalisé pour votre projet.</p>
-                
+
                 <p><strong>Détails du devis :</strong></p>
                 <ul>
                     <li>📋 Référence : DEVIS-{datetime.now().strftime('%Y%m%d')}</li>
                     <li>📅 Date : {datetime.now().strftime('%d/%m/%Y')}</li>
                     <li>💰 Montant total : {devis_data.get('total', 0):.2f} € TTC</li>
                 </ul>
-                
+
                 <p>Le devis détaillé est joint à cet email au format PDF.</p>
-                
+
                 <p><strong>Nos spécialités :</strong></p>
                 <ul>
                     {"".join(f"<li>• {spec}</li>" for spec in COMPANY_INFO['specialites'])}
                 </ul>
-                
+
                 <p>N'hésitez pas à nous contacter pour toute question ou précision.</p>
-                
+
                 <p>Cordialement,<br>L'équipe {COMPANY_INFO['name']}</p>
             </div>
-            
+
             <div class="footer">
                 <p><strong>Contact :</strong><br>
                 📞 {COMPANY_INFO['phone']}<br>
@@ -1521,7 +1614,7 @@ def send_devis_email():
         </body>
         </html>
         """
-        
+
         # Envoyer l'email
         success = send_email(
             to_email=client_email,
@@ -1530,13 +1623,13 @@ def send_devis_email():
             pdf_attachment=pdf_buffer,
             attachment_filename=f"devis-{datetime.now().strftime('%Y%m%d')}.pdf"
         )
-        
+
         return jsonify({
             'success': success,
             'message': 'Email envoyé avec succès!' if success else 'Erreur lors de l\'envoi de l\'email',
             'email_enabled': EMAIL_CONFIG['enabled']
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

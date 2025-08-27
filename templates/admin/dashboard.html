@@ -57,7 +57,7 @@
                         <button class="btn btn-outline-secondary dropdown-toggle" type="button"
                             data-bs-toggle="dropdown">
                             <i class="fas fa-user-shield me-2"></i>
-                            Admin
+                            Administrateur
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="/" target="_blank">
@@ -843,7 +843,7 @@
                             });
 
                             const emailResult = await emailResponse.json();
-                            
+
                             if (emailResult.success) {
                                 successMessage += '\n📧 Email envoyé avec succès !';
                             } else if (emailResult.email_enabled) {

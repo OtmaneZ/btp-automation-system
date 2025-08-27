@@ -98,13 +98,26 @@ git push origin main
 
 ## 🔧 Configuration Admin
 
-```python
-# Accès admin (production)
-Email: admin@nfs-batiment.fr
-# Dashboard: /admin/dashboard
-# Planning: /admin/planning
-# Analytics: /historique
+```bash
+# Variables d'environnement requises (Render.com)
+SECRET_KEY=your-32-char-secret-key
+ADMIN_EMAIL=your-admin@domain.com
+ADMIN_PASSWORD=YourSecurePassword123!
+EMAIL_PASSWORD=gmail-app-password
+
+# Accès sécurisé
+Dashboard: /admin/dashboard
+Planning: /admin/planning
+Security Status: /admin/security-status
 ```
+
+## 🔒 Sécurité
+
+- ✅ **Protection brute force** : Blocage IP après 5 tentatives
+- ✅ **Headers sécurisés** : XSS, CSRF, Content-Type protection
+- ✅ **Identifiants cachés** : Variables d'environnement uniquement
+- ✅ **Sessions sécurisées** : Clés aléatoires, timeouts
+- ✅ **HTTPS enforced** : Redirection automatique
 
 ## 📄 Contact & Portfolio
 
