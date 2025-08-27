@@ -84,12 +84,15 @@
 
                         <!-- QR Code CTA -->
                         <div class="qr-cta mt-4">
-                            <div class="alert alert-info d-flex align-items-center">
+                            <div class="alert alert-info d-flex align-items-center"
+                                style="cursor: pointer; transition: all 0.3s ease;" onclick="showQRModal()"
+                                data-bs-toggle="tooltip" title="Cliquez pour voir le QR Code">
                                 <i class="fas fa-qrcode fa-2x me-3"></i>
                                 <div>
                                     <strong>Client ? Scannez notre QR Code</strong><br>
                                     <small>Pour nous envoyer votre demande avec photo instantanément</small>
                                 </div>
+                                <i class="fas fa-chevron-right ms-auto"></i>
                             </div>
                         </div>
                     </div>
@@ -392,6 +395,114 @@
             }, 1000);
         });
     </script>
-</body>
 
-</html>
+    <!-- Modal QR Code -->
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 text-center">
+                    <h5 class="modal-title w-100" id="qrModalLabel">
+                        <i class="fas fa-qrcode text-primary me-2"></i>QR Code Client
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div id="qr-code-container" class="mb-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Génération du QR Code...</span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary mb-3">Mode d'emploi :</h6>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="step-number bg-primary text-white rounded-circle me-3"
+                                    style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">
+                                    1</div>
+                                <small><strong>Ouvrez l'appareil photo</strong> de votre smartphone</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="step-number bg-primary text-white rounded-circle me-3"
+                                    style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">
+                                    2</div>
+                                <small><strong>Scannez le QR Code</strong> ci-dessus</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="step-number bg-primary text-white rounded-circle me-3"
+                                    style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">
+                                    3</div>
+                                <small><strong>Remplissez le formulaire</strong> avec photos de votre projet</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-success bg-opacity-10 rounded">
+                                <div class="step-number bg-success text-white rounded-circle me-3"
+                                    style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">
+                                    ✓</div>
+                                <small class="text-success"><strong>Recevez votre devis</strong> rapidement !</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-primary bg-opacity-10 rounded">
+                        <small class="text-primary">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Astuce :</strong> Ajoutez des photos de votre projet pour un devis plus précis
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <a href="/demande-client" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-external-link-alt me-1"></i>Ouvrir le formulaire directement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour afficher le modal QR Code
+        function showQRModal() {
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
+
+            // Générer le QR Code quand le modal s'ouvre
+            setTimeout(() => {
+                generateQRCodeForModal();
+            }, 300);
+        }
+
+        // Fonction pour générer le QR Code dans le modal
+        function generateQRCodeForModal() {
+            const container = document.getElementById('qr-code-container');
+            const url = window.location.origin + '/demande-client';
+
+            // Générer le QR Code avec une librairie simple
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+
+            container.innerHTML = `
+                <div class="qr-code-wrapper p-3 bg-white border rounded shadow-sm" style="display: inline-block;">
+                    <img src="${qrCodeUrl}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                    <div class="mt-2">
+                        <small class="text-muted">Formulaire de demande client</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Activer les tooltips
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+</body >
+
+</html >
