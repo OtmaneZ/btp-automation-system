@@ -912,6 +912,12 @@
         }
         {% endif %}
 
+        // Vérifier si on vient de la page factures
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('mode') === 'facture') {
+            showNotification('💡 Créez un devis puis utilisez "Générer & Envoyer" pour créer la facture automatiquement !', 'info');
+        }
+
         // Ajouter une prestation par défaut
         addPrestation();
         });

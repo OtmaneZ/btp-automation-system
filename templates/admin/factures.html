@@ -120,7 +120,7 @@
                             Factures Émises
                         </h5>
                         <button class="btn btn-success btn-sm" onclick="creerNouvelleFacture()">
-                            <i class="fas fa-plus me-2"></i>Nouvelle Facture
+                            <i class="fas fa-plus me-2"></i>Créer Devis → Facture
                         </button>
                     </div>
                     <div class="card-body">
@@ -176,7 +176,7 @@
                             <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
                             <p class="text-muted">Aucune facture émise pour le moment</p>
                             <button class="btn btn-success" onclick="creerNouvelleFacture()">
-                                <i class="fas fa-plus me-2"></i>Créer la première facture
+                                <i class="fas fa-plus me-2"></i>Créer Devis → Facture
                             </button>
                         </div>
                         {% endif %}
@@ -315,8 +315,21 @@
     <script>
         // Fonctions principales
         function creerNouvelleFacture() {
-            // Rediriger vers le dashboard pour créer un nouveau devis/facture
-            window.location.href = '/admin/dashboard';
+            // Demander s'il faut créer via un devis ou directement
+            const choix = confirm('Créer une facture :\n\n✅ OK = Créer d\'abord un devis (recommandé)\n❌ Annuler = Créer une facture directe\n\nRecommandé : créer un devis d\'abord pour avoir un workflow complet.');
+
+            if (choix) {
+                // Rediriger vers le dashboard pour créer un devis
+                window.location.href = '/admin/dashboard?mode=facture';
+            } else {
+                // Créer une facture directe (modal)
+                ouvrirModalFactureDirecte();
+            }
+        }
+
+        function ouvrirModalFactureDirecte() {
+            alert('Fonctionnalité en développement !\n\nPour l\'instant, créez un devis puis convertissez-le en facture.\n\nRedirection vers le dashboard...');
+            window.location.href = '/admin/dashboard?mode=facture';
         }
 
         function convertirEnFacture(devisId) {
