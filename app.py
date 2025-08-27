@@ -16,11 +16,24 @@ import base64
 from PIL import Image
 from functools import wraps
 import hashlib
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 
 app = Flask(__name__)
 app.secret_key = 'nfs-batiment-secret-key-2025'  # Clé pour les sessions
 
-# Configuration
+# Configuration email
+EMAIL_CONFIG = {
+    'smtp_server': 'smtp.gmail.com',
+    'smtp_port': 587,
+    'email': 'nfsbezzar@gmail.com',
+    'password': os.environ.get('EMAIL_PASSWORD', ''),  # À définir dans les variables d'environnement
+    'enabled': bool(os.environ.get('EMAIL_PASSWORD'))
+}
+
+# Configuration base de données
 DATABASE = 'devis.db'
 
 # OPTIMISATION RENDER: Route de health check
@@ -886,6 +899,187 @@ def generate_pdf(devis_id, data, devis_numero=None):
 
     return pdf_path
 
+def generate_devis_pdf_data(data):
+    """Génère les données PDF du devis en mémoire (pour email)"""
+    # Créer un buffer en mémoire
+    pdf_buffer = io.BytesIO()
+    
+    # Créer le PDF
+    c = canvas.Canvas(pdf_buffer, pagesize=A4)
+    width, height = A4
+    
+    # En-tête avec logo et informations entreprise
+    try:
+        logo_path = os.path.join('static', 'img', 'logo-nfs.png')
+        if os.path.exists(logo_path):
+            # Ajouter le logo (redimensionné)
+            c.drawImage(logo_path, 50, height - 80, width=80, height=40, mask='auto')
+
+            # Informations entreprise à côté du logo
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(140, height - 45, COMPANY_INFO['name'])
+            c.setFont("Helvetica", 9)
+            c.drawString(140, height - 60, COMPANY_INFO['address'].split('\n')[0])
+            c.drawString(140, height - 72, COMPANY_INFO['address'].split('\n')[1])
+            c.drawString(140, height - 84, COMPANY_INFO['address'].split('\n')[2])
+            c.drawString(140, height - 96, f"Tél: {COMPANY_INFO['phone']} | Email: {COMPANY_INFO['email']}")
+        else:
+            # Fallback sans logo
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(50, height - 45, COMPANY_INFO['name'])
+            c.setFont("Helvetica", 9)
+            c.drawString(50, height - 60, COMPANY_INFO['address'].split('\n')[0])
+            c.drawString(50, height - 72, COMPANY_INFO['address'].split('\n')[1])
+            c.drawString(50, height - 84, COMPANY_INFO['address'].split('\n')[2])
+            c.drawString(50, height - 96, f"Tél: {COMPANY_INFO['phone']} | Email: {COMPANY_INFO['email']}")
+    except Exception as e:
+        # Fallback en cas d'erreur avec le logo
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(50, height - 45, COMPANY_INFO['name'])
+        c.setFont("Helvetica", 9)
+        c.drawString(50, height - 60, COMPANY_INFO['address'].split('\n')[0])
+        c.drawString(50, height - 72, COMPANY_INFO['address'].split('\n')[1])
+        c.drawString(50, height - 84, COMPANY_INFO['address'].split('\n')[2])
+
+    # Titre DEVIS
+    c.setFont("Helvetica-Bold", 18)
+    c.setFillColor(HexColor("#2c3e50"))
+    c.drawString(50, height - 130, "DEVIS")
+
+    # Numéro et date
+    devis_numero = f"DEV-{datetime.now().year}-{datetime.now().month:02d}{datetime.now().day:02d}"
+    c.setFont("Helvetica", 10)
+    c.drawString(400, height - 130, f"N° {devis_numero}")
+    c.drawString(400, height - 145, f"Date: {datetime.now().strftime('%d/%m/%Y')}")
+
+    # Informations client
+    y_pos = height - 180
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y_pos, "CLIENT:")
+
+    y_pos -= 20
+    c.setFont("Helvetica", 10)
+    c.drawString(50, y_pos, data.get('nom', ''))
+    
+    y_pos -= 15
+    if data.get('adresse'):
+        c.drawString(50, y_pos, data.get('adresse', ''))
+        y_pos -= 15
+    
+    if data.get('telephone'):
+        c.drawString(50, y_pos, f"Tél: {data.get('telephone', '')}")
+        y_pos -= 15
+    
+    if data.get('email'):
+        c.drawString(50, y_pos, f"Email: {data.get('email', '')}")
+
+    # Tableau des prestations
+    y_pos = height - 300
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(50, y_pos, "DÉSIGNATION")
+    c.drawString(350, y_pos, "QUANTITÉ")
+    c.drawString(420, y_pos, "PRIX UNIT.")
+    c.drawString(500, y_pos, "TOTAL HT")
+
+    # Ligne de séparation
+    y_pos -= 5
+    c.line(50, y_pos, 550, y_pos)
+
+    # Prestations
+    y_pos -= 20
+    c.setFont("Helvetica", 9)
+    total_ht = 0
+    
+    prestations = data.get('prestations', [])
+    if isinstance(prestations, str):
+        # Si c'est une string, on la parse
+        import json
+        try:
+            prestations = json.loads(prestations)
+        except:
+            prestations = []
+    
+    for prestation in prestations:
+        if isinstance(prestation, dict):
+            designation = prestation.get('designation', '')
+            quantite = prestation.get('quantite', 1)
+            prix_unitaire = prestation.get('prix_unitaire', 0)
+            total_ligne = quantite * prix_unitaire
+            total_ht += total_ligne
+
+            # Wrapping du texte si trop long
+            if len(designation) > 35:
+                designation = designation[:32] + "..."
+            
+            c.drawString(50, y_pos, designation)
+            c.drawString(365, y_pos, str(quantite))
+            c.drawString(430, y_pos, f"{prix_unitaire:.2f} €")
+            c.drawString(510, y_pos, f"{total_ligne:.2f} €")
+            y_pos -= 15
+
+    # Totaux
+    y_pos -= 20
+    c.line(400, y_pos, 550, y_pos)
+    y_pos -= 15
+    
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(450, y_pos, f"Total HT: {total_ht:.2f} €")
+    
+    tva_rate = 0.20
+    tva_amount = total_ht * tva_rate
+    y_pos -= 15
+    c.drawString(450, y_pos, f"TVA 20%: {tva_amount:.2f} €")
+    
+    total_ttc = total_ht + tva_amount
+    y_pos -= 15
+    c.setFillColor(HexColor("#e74c3c"))
+    c.drawString(450, y_pos, f"Total TTC: {total_ttc:.2f} €")
+    c.setFillColor(HexColor("#000000"))  # Reset couleur
+
+    # Conditions
+    y_pos -= 40
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(50, y_pos, "CONDITIONS:")
+    
+    y_pos -= 15
+    c.setFont("Helvetica", 9)
+    conditions = [
+        "• Devis valable 30 jours",
+        "• Règlement à 30 jours",
+        "• TVA applicable selon réglementation en vigueur",
+        f"• Nos spécialités: {', '.join(COMPANY_INFO['specialites'])}"
+    ]
+    
+    for condition in conditions:
+        c.drawString(50, y_pos, condition)
+        y_pos -= 12
+
+    # Signature
+    y_pos -= 30
+    c.setFont("Helvetica", 10)
+    c.drawString(50, y_pos, "Bon pour accord:")
+    c.drawString(300, y_pos, COMPANY_INFO['name'])
+
+    y_pos -= 20
+    c.drawString(50, y_pos, "Date et signature client:")
+
+    # Footer
+    c.setFont("Helvetica", 7)
+    footer_y = 50
+    c.drawCentredString(width/2, footer_y,
+                     f"{COMPANY_INFO['name']} - {COMPANY_INFO['siret']} - {COMPANY_INFO['rcs']} - APE: {COMPANY_INFO['ape']}")
+    c.drawCentredString(width/2, footer_y - 10,
+                     f"Capital: {COMPANY_INFO['capital']} - TVA: {COMPANY_INFO['tva']}")
+
+    c.save()
+
+    # Récupérer les données du buffer
+    pdf_buffer.seek(0)
+    pdf_data = pdf_buffer.read()
+    pdf_buffer.close()
+    
+    return pdf_data
+
 @app.route('/download-pdf/<int:devis_id>')
 def download_pdf(devis_id):
     """Télécharge le PDF d'un devis"""
@@ -1216,6 +1410,133 @@ def change_demande_status():
 
         return jsonify({'success': True})
 
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ========================================
+# SYSTÈME D'ENVOI D'EMAIL
+# ========================================
+
+def send_email(to_email, subject, html_content, pdf_attachment=None, attachment_filename="devis.pdf"):
+    """Envoie un email avec pièce jointe PDF optionnelle"""
+    if not EMAIL_CONFIG['enabled']:
+        print(f"📧 Email désactivé - pas de mot de passe configuré")
+        return False
+        
+    try:
+        # Créer le message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = EMAIL_CONFIG['email']
+        msg['To'] = to_email
+
+        # Version HTML
+        html_part = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(html_part)
+
+        # Ajouter PDF si fourni
+        if pdf_attachment:
+            pdf_part = MIMEApplication(pdf_attachment, _subtype='pdf')
+            pdf_part.add_header('Content-Disposition', 'attachment', filename=attachment_filename)
+            msg.attach(pdf_part)
+
+        # Envoyer l'email
+        with smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port']) as server:
+            server.starttls()
+            server.login(EMAIL_CONFIG['email'], EMAIL_CONFIG['password'])
+            server.send_message(msg)
+            
+        print(f"📧 Email envoyé avec succès à {to_email}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erreur envoi email: {e}")
+        return False
+
+@app.route('/api/send-devis-email', methods=['POST'])
+def send_devis_email():
+    """Endpoint pour envoyer un devis par email"""
+    try:
+        data = request.get_json()
+        
+        client_email = data.get('email')
+        devis_data = data.get('devis')
+        
+        if not client_email or not devis_data:
+            return jsonify({'success': False, 'error': 'Email et données devis requis'}), 400
+            
+        # Générer le PDF en mémoire
+        pdf_buffer = generate_devis_pdf_data(devis_data)
+        
+        # Template email HTML
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                           color: white; padding: 20px; border-radius: 8px; }}
+                .content {{ padding: 20px; }}
+                .footer {{ background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🏗️ {COMPANY_INFO['name']}</h1>
+                <p>Votre devis personnalisé</p>
+            </div>
+            
+            <div class="content">
+                <h2>Bonjour {devis_data.get('nom', 'Cher client')},</h2>
+                
+                <p>Nous avons le plaisir de vous transmettre votre devis personnalisé pour votre projet.</p>
+                
+                <p><strong>Détails du devis :</strong></p>
+                <ul>
+                    <li>📋 Référence : DEVIS-{datetime.now().strftime('%Y%m%d')}</li>
+                    <li>📅 Date : {datetime.now().strftime('%d/%m/%Y')}</li>
+                    <li>💰 Montant total : {devis_data.get('total', 0):.2f} € TTC</li>
+                </ul>
+                
+                <p>Le devis détaillé est joint à cet email au format PDF.</p>
+                
+                <p><strong>Nos spécialités :</strong></p>
+                <ul>
+                    {"".join(f"<li>• {spec}</li>" for spec in COMPANY_INFO['specialites'])}
+                </ul>
+                
+                <p>N'hésitez pas à nous contacter pour toute question ou précision.</p>
+                
+                <p>Cordialement,<br>L'équipe {COMPANY_INFO['name']}</p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>Contact :</strong><br>
+                📞 {COMPANY_INFO['phone']}<br>
+                📧 {COMPANY_INFO['email']}<br>
+                📍 {COMPANY_INFO['address'].replace(chr(10), '<br>')}</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Envoyer l'email
+        success = send_email(
+            to_email=client_email,
+            subject=f"Votre devis - {COMPANY_INFO['name']}",
+            html_content=html_content,
+            pdf_attachment=pdf_buffer,
+            attachment_filename=f"devis-{datetime.now().strftime('%Y%m%d')}.pdf"
+        )
+        
+        return jsonify({
+            'success': success,
+            'message': 'Email envoyé avec succès!' if success else 'Erreur lors de l\'envoi de l\'email',
+            'email_enabled': EMAIL_CONFIG['enabled']
+        })
+        
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

@@ -823,10 +823,34 @@
                                 total_ttc: prestationsData.reduce((total, p) => total + (p.quantite * p.prix_unitaire * 1.2), 0)
                             };
 
-                            // EmailJS temporairement désactivé (configuration requise)
-                            // await sendEmailWithPDF(clientData, result.pdf_url, devisData);
+                            // Envoyer par email avec le nouveau système
+                            const emailResponse = await fetch('/api/send-devis-email', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    email: clientData.email,
+                                    devis: {
+                                        nom: clientData.nom,
+                                        adresse: clientData.adresse,
+                                        telephone: clientData.telephone,
+                                        email: clientData.email,
+                                        prestations: prestationsData,
+                                        total: prestationsData.reduce((total, p) => total + (p.quantite * p.prix_unitaire * 1.2), 0)
+                                    }
+                                })
+                            });
 
-                            successMessage += '\n📧 Email désactivé temporairement (configuration EmailJS requise)';
+                            const emailResult = await emailResponse.json();
+                            
+                            if (emailResult.success) {
+                                successMessage += '\n📧 Email envoyé avec succès !';
+                            } else if (emailResult.email_enabled) {
+                                successMessage += `\n⚠️ Erreur email: ${emailResult.message}`;
+                            } else {
+                                successMessage += '\n📧 Email non configuré (mot de passe EMAIL_PASSWORD requis)';
+                            }
 
                         } catch (emailError) {
                             console.error('Erreur email:', emailError);
