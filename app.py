@@ -284,6 +284,24 @@ def init_db():
         )
     ''')
 
+    # Table factures
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS factures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_facture TEXT UNIQUE NOT NULL,
+            client_id INTEGER,
+            devis_id INTEGER,
+            date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            montant_total REAL NOT NULL,
+            statut TEXT DEFAULT 'en_attente',
+            date_echeance DATE,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES clients (id),
+            FOREIGN KEY (devis_id) REFERENCES devis (id)
+        )
+    ''')
+
     # 22 prestations BTP propres
     prestations_btp = [
         ('Maçonnerie générale', 'm²', 45.0),
@@ -425,6 +443,38 @@ def admin_dashboard():
     conn.close()
 
     return render_template('admin/dashboard.html', prestations=prestations, demande_data=demande_data)
+
+@app.route('/admin/factures')
+@login_required
+def admin_factures():
+    """Gestion des factures"""
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+
+    # Récupérer les devis qui peuvent être convertis en factures
+    cursor.execute('''
+        SELECT d.*, c.nom, c.prenom, c.email, c.telephone, c.adresse
+        FROM devis d
+        LEFT JOIN clients c ON d.client_id = c.id
+        ORDER BY d.created_at DESC
+    ''')
+    devis = cursor.fetchall()
+
+    # Récupérer les factures existantes (si table existe)
+    try:
+        cursor.execute('''
+            SELECT f.*, c.nom, c.prenom, c.email
+            FROM factures f
+            LEFT JOIN clients c ON f.client_id = c.id
+            ORDER BY f.created_at DESC
+        ''')
+        factures = cursor.fetchall()
+    except sqlite3.OperationalError:
+        factures = []
+
+    conn.close()
+
+    return render_template('admin/factures.html', devis=devis, factures=factures)
 
 # ========================================
 # ROUTES SITE VITRINE (PUBLIC)
