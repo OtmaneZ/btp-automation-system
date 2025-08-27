@@ -28,24 +28,46 @@
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            background: #f8f9fa;
-            height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 350px;
+            position: relative;
         }
 
         .gallery-item:hover {
-            transform: scale(1.05);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .overlay {
+            border-radius: 15px;
+            transition: background 0.3s ease;
+        }
+
+        .gallery-item:hover .overlay {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9)) !important;
         }
 
         .badge-custom {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .gallery-item:hover .badge-custom {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .modal-xl {
+            max-width: 1200px;
+        }
+
+        .gallery-photo:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
         }
     </style>
 </head>
@@ -110,69 +132,168 @@
     <!-- Gallery Section -->
     <section class="py-5">
         <div class="container">
+            <h2 class="text-center mb-5">Nos Réalisations</h2>
             <div class="row g-4">
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-hammer fa-3x mb-3"></i>
-                            <h5>Rénovation Salle de Bain</h5>
-                            <span class="badge-custom">Maçonnerie + Carrelage</span>
+                <!-- Rénovation WC -->
+                <div class="col-lg-6 col-md-6">
+                    <div class="gallery-item" onclick="openModal('wc')"
+                        style="cursor: pointer; position: relative; background: url('/static/img/wc_1.jpg') center/cover;">
+                        <div class="overlay"
+                            style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8)); display: flex; align-items: center; justify-content: center;">
+                            <div class="text-center text-white">
+                                <i class="fas fa-toilet fa-3x mb-3"></i>
+                                <h4>Rénovation WC</h4>
+                                <span class="badge badge-custom">Cliquez pour voir les photos</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-home fa-3x mb-3"></i>
-                            <h5>Rénovation Appartement</h5>
-                            <span class="badge-custom">Projet Complet</span>
+                <!-- Rénovation Salon -->
+                <div class="col-lg-6 col-md-6">
+                    <div class="gallery-item" onclick="openModal('salon')"
+                        style="cursor: pointer; position: relative; background: url('/static/img/salon_1.jpg') center/cover;">
+                        <div class="overlay"
+                            style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8)); display: flex; align-items: center; justify-content: center;">
+                            <div class="text-center text-white">
+                                <i class="fas fa-couch fa-3x mb-3"></i>
+                                <h4>Rénovation Salon</h4>
+                                <span class="badge badge-custom">Cliquez pour voir les photos</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-th-large fa-3x mb-3"></i>
-                            <h5>Terrasse Extérieure</h5>
-                            <span class="badge-custom">Carrelage Extérieur</span>
+                <!-- Rénovation Cuisine -->
+                <div class="col-lg-6 col-md-6">
+                    <div class="gallery-item" onclick="openModal('cuisine')"
+                        style="cursor: pointer; position: relative; background: url('/static/img/cuisine_1.jpg') center/cover;">
+                        <div class="overlay"
+                            style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8)); display: flex; align-items: center; justify-content: center;">
+                            <div class="text-center text-white">
+                                <i class="fas fa-utensils fa-3x mb-3"></i>
+                                <h4>Rénovation Cuisine</h4>
+                                <span class="badge badge-custom">Cliquez pour voir les photos</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-paint-roller fa-3x mb-3"></i>
-                            <h5>Peinture Façade</h5>
-                            <span class="badge-custom">Ravalement</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-wrench fa-3x mb-3"></i>
-                            <h5>Installation Plomberie</h5>
-                            <span class="badge-custom">Création Point d'Eau</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <div class="gallery-item">
-                        <div class="text-center">
-                            <i class="fas fa-bolt fa-3x mb-3"></i>
-                            <h5>Mise aux Normes</h5>
-                            <span class="badge-custom">Électricité</span>
+                <!-- Pose de Faux-Plafond -->
+                <div class="col-lg-6 col-md-6">
+                    <div class="gallery-item" onclick="openModal('plafond')"
+                        style="cursor: pointer; position: relative; background: url('/static/img/plafond_1.jpg') center/cover;">
+                        <div class="overlay"
+                            style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8)); display: flex; align-items: center; justify-content: center;">
+                            <div class="text-center text-white">
+                                <i class="fas fa-layer-group fa-3x mb-3"></i>
+                                <h4>Pose de Faux-Plafond</h4>
+                                <span class="badge badge-custom">Cliquez pour voir les photos</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Modals pour les photos -->
+    <!-- Modal WC -->
+    <div class="modal fade" id="wcModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rénovation WC</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" id="wc-photos">
+                        <!-- Les photos seront ajoutées ici dynamiquement -->
+                        <div class="col-md-6">
+                            <div class="text-center p-5"
+                                style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 10px;">
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Photos en cours d'ajout...</p>
+                                <small>Nommez vos photos: wc_1.jpg, wc_2.jpg, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Salon -->
+    <div class="modal fade" id="salonModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rénovation Salon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" id="salon-photos">
+                        <div class="col-md-6">
+                            <div class="text-center p-5"
+                                style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 10px;">
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Photos en cours d'ajout...</p>
+                                <small>Nommez vos photos: salon_1.jpg, salon_2.jpg, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cuisine -->
+    <div class="modal fade" id="cuisineModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rénovation Cuisine</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" id="cuisine-photos">
+                        <div class="col-md-6">
+                            <div class="text-center p-5"
+                                style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 10px;">
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Photos en cours d'ajout...</p>
+                                <small>Nommez vos photos: cuisine_1.jpg, cuisine_2.jpg, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Plafond -->
+    <div class="modal fade" id="plafondModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Pose de Faux-Plafond</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" id="plafond-photos">
+                        <div class="col-md-6">
+                            <div class="text-center p-5"
+                                style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 10px;">
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Photos en cours d'ajout...</p>
+                                <small>Nommez vos photos: plafond_1.jpg, plafond_2.jpg, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Testimonials -->
     <section class="py-5" style="background: #f8f9fa;">
@@ -245,6 +366,63 @@
     </section>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Configuration des photos pour chaque catégorie
+        const photosByCategory = {
+            wc: ['wc_1.jpg', 'wc_2.jpg', 'wc_3.jpg'],  // Toutes tes photos WC
+            salon: ['salon_1.jpg', 'salon_2.jpg', 'salon_3.jpg'],  // Toutes tes photos salon
+            cuisine: ['cuisine_1.jpg', 'cuisine_2.jpg', 'cuisine_3.jpg'],  // Toutes tes photos cuisine
+            plafond: ['plafond_1.jpg', 'plafond_2.jpg']  // Tes photos plafond
+        };
+
+        // Fonction pour ouvrir un modal
+        function openModal(category) {
+            const modalId = category + 'Modal';
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            loadPhotos(category);
+            modal.show();
+        }
+
+        // Fonction pour charger les photos dans un modal
+        function loadPhotos(category) {
+            const photosContainer = document.getElementById(category + '-photos');
+            const photos = photosByCategory[category];
+
+            if (photos && photos.length > 0) {
+                photosContainer.innerHTML = '';
+
+                photos.forEach((photo, index) => {
+                    const photoDiv = document.createElement('div');
+                    photoDiv.className = 'col-md-6 col-lg-4 mb-3';
+
+                    photoDiv.innerHTML = `
+                        <div class="gallery-photo" onclick="openPhotoModal('${category}', ${index})">
+                            <img src="/static/img/${photo}"
+                                 alt="${category} ${index + 1}"
+                                 class="img-fluid rounded shadow"
+                                 style="height: 250px; object-fit: cover; width: 100%; cursor: pointer;"
+                                 onerror="this.parentElement.innerHTML='<div class=\\"text-center p-4 bg-light rounded\\"><i class=\\"fas fa-image fa-2x text-muted mb-2\\"></i><br><small class=\\"text-muted\\">Photo ${photo} à ajouter</small></div>'">
+                        </div>
+                    `;
+
+                    photosContainer.appendChild(photoDiv);
+                });
+            }
+        }
+
+        // Fonction pour ouvrir une photo en plein écran (optionnel)
+        function openPhotoModal(category, index) {
+            const photo = photosByCategory[category][index];
+            // Tu peux ajouter un lightbox ici si tu veux
+            window.open(`/static/img/${photo}`, '_blank');
+        }
+
+        // Charger les photos au démarrage (pour vérifier)
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Galerie chargée - Photos configurées:', photosByCategory);
+        });
+    </script>
 </body>
 
 </html>
