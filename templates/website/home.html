@@ -377,6 +377,35 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Fonction pour afficher le modal QR Code - déclarée en premier
+        function showQRModal() {
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
+
+            // Générer le QR Code quand le modal s'ouvre
+            setTimeout(() => {
+                generateQRCodeForModal();
+            }, 300);
+        }
+
+        // Fonction pour générer le QR Code dans le modal
+        function generateQRCodeForModal() {
+            const container = document.getElementById('qr-code-container');
+            const url = window.location.origin + '/demande-client';
+
+            // Générer le QR Code avec une librairie simple
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+
+            container.innerHTML = `
+                <div class="qr-code-wrapper p-3 bg-white border rounded shadow-sm" style="display: inline-block;">
+                    <img src="${qrCodeUrl}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                    <div class="mt-2">
+                        <small class="text-muted">Formulaire de demande client</small>
+                    </div>
+                </div>
+            `;
+        }
+
         // Form handling
         document.getElementById('contactForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -467,35 +496,6 @@
     </div>
 
     <script>
-        // Fonction pour afficher le modal QR Code
-        function showQRModal() {
-            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
-            modal.show();
-
-            // Générer le QR Code quand le modal s'ouvre
-            setTimeout(() => {
-                generateQRCodeForModal();
-            }, 300);
-        }
-
-        // Fonction pour générer le QR Code dans le modal
-        function generateQRCodeForModal() {
-            const container = document.getElementById('qr-code-container');
-            const url = window.location.origin + '/demande-client';
-
-            // Générer le QR Code avec une librairie simple
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-
-            container.innerHTML = `
-                <div class="qr-code-wrapper p-3 bg-white border rounded shadow-sm" style="display: inline-block;">
-                    <img src="${qrCodeUrl}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
-                    <div class="mt-2">
-                        <small class="text-muted">Formulaire de demande client</small>
-                    </div>
-                </div>
-            `;
-        }
-
         // Activer les tooltips
         document.addEventListener('DOMContentLoaded', function () {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -503,6 +503,8 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
-</body >
+    </script>
+    </script>
+</body>
 
-</html >
+</html>
