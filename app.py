@@ -404,9 +404,27 @@ def admin_dashboard():
     cursor.execute('SELECT * FROM prestations_types ORDER BY nom')
     prestations = cursor.fetchall()
 
+    # Vérifier si on vient d'une demande client
+    demande_data = None
+    from_demande = request.args.get('from_demande')
+    if from_demande:
+        cursor.execute('SELECT * FROM demandes_clients WHERE id = ?', (from_demande,))
+        demande = cursor.fetchone()
+        if demande:
+            demande_data = {
+                'id': demande[0],
+                'nom': demande[1],
+                'prenom': demande[2],
+                'telephone': demande[3],
+                'email': demande[4],
+                'adresse': demande[5],
+                'description': demande[6],
+                'photo_path': demande[7]
+            }
+
     conn.close()
 
-    return render_template('admin/dashboard.html', prestations=prestations)
+    return render_template('admin/dashboard.html', prestations=prestations, demande_data=demande_data)
 
 # ========================================
 # ROUTES SITE VITRINE (PUBLIC)

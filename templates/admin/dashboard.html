@@ -887,9 +887,51 @@
                 templateSection.style.display = this.checked ? 'block' : 'none';
             });
 
-            // Ajouter une prestation par défaut
-            addPrestation();
+            // Pré-remplir avec les données de la demande client si disponible
+            {% if demande_data %}
+            const demandeData = {{ demande_data | tojson
+        }};
+        document.getElementById('nom').value = demandeData.nom || '';
+        document.getElementById('prenom').value = demandeData.prenom || '';
+        document.getElementById('telephone').value = demandeData.telephone || '';
+        document.getElementById('email').value = demandeData.email || '';
+        document.getElementById('adresse').value = demandeData.adresse || '';
+
+        // Afficher une notification pour informer l'utilisateur
+        showNotification('Données client importées de la demande #' + demandeData.id, 'success');
+
+        // Si il y a une description, l'afficher dans les notes
+        if (demandeData.description) {
+            // Chercher le champ notes si il existe
+            const notesField = document.querySelector('textarea[placeholder*="note"], textarea[id*="note"], #description');
+            if (notesField) {
+                notesField.value = 'Demande client: ' + demandeData.description;
+            }
+        }
+        {% endif %}
+
+        // Ajouter une prestation par défaut
+        addPrestation();
         });
+
+        // Fonction pour afficher des notifications
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 400px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+
+            // Auto-dismiss after 4 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 4000);
+        }
     </script>
 </body>
 
