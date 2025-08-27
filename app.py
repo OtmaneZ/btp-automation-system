@@ -23,6 +23,16 @@ app.secret_key = 'nfs-batiment-secret-key-2025'  # Clé pour les sessions
 # Configuration
 DATABASE = 'devis.db'
 
+# OPTIMISATION RENDER: Route de health check
+@app.route('/health')
+def health_check():
+    """Route rapide pour keep-alive et monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'nfs-batiment-api'
+    })
+
 # Informations entreprise
 COMPANY_INFO = {
     'name': 'SASU NFS BATIMENT',
