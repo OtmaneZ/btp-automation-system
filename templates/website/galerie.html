@@ -402,12 +402,9 @@
                             <img src="/static/img/${photo}"
                                  alt="${category} ${index + 1}"
                                  class="img-fluid rounded shadow"
-                                 style="height: 250px; object-fit: cover; width: 100%; cursor: pointer;"
-                                 onerror="this.parentElement.innerHTML='<div class=\\"text-center p-4 bg-light rounded\\"><i class=\\"fas fa-image fa-2x text-muted mb-2\\"></i><br><small class=\\"text-muted\\">Photo ${photo} à ajouter</small></div>'">
+                                 style="height: 250px; object-fit: cover; width: 100%; cursor: pointer;">
                         </div>
-                    `;
-
-                    photosContainer.appendChild(photoDiv);
+                    `; photosContainer.appendChild(photoDiv);
                 });
             }
         }
